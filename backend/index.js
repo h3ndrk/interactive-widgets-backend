@@ -1,25 +1,19 @@
-// const io = require('socket.io');
-// const server = io.listen(3001);
-
-// server.on('connection', socket => {
-//   console.log('user connected');
-//   socket.emit('welcome', 'welcome man');
-// });
-
 const { program } = require('commander');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const Docker = require('dockerode');
 const io = require('socket.io');
-// const markdown2Widgets = require('./markdown2Widgets');
-
-// console.log(markdown2Widgets(markdown));
+const markdown2Widgets = require('./markdown2Widgets');
 
 class StaticPage {
   constructor(basePath, url) {
     this.basePath = basePath;
     this.url = url;
+    this.widgets = [];
+  }
+  async readPage() {
+    this.widgets = markdown2Widgets((await fs.promises.readFile(path.join(this.basePath, 'page.md'))).toString('utf8'));
   }
   async buildImage(docker) {
     this.docker = docker;
@@ -80,6 +74,9 @@ class Client {
   }
   sendPages(pages) {
     this.socket.emit('pages', pages.map(page => page.url));
+  }
+  sendWidgets(pages) {
+    this.socket.emit('widgets', pages.find(page => page.url).widgets);
   }
 }
 
@@ -161,6 +158,8 @@ class DockerBackend {
       if (!this.volumes[volumeHash])
         this.volumes[volumeHash] = new Volume(this.docker, client.pageUuid, client.url);
       await this.volumes[volumeHash].registerClient();
+
+      client.sendWidgets(this.pages);
     });
     client.sendPages(this.pages);
   }
@@ -176,6 +175,7 @@ async function main() {
 
   let pages = [];
   for await (const page of getPages(pagesDirectory)) {
+    await page.readPage();
     pages = [...pages, page];
   }
 

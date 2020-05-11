@@ -10,5 +10,8 @@ socket.on('disconnect', () => {
 })
 socket.on('pages', pages => {
   console.log('pages:', pages);
-  socket.emit('request', {pageUuid: 'page-uuid', url: '/'});
+  socket.emit('request', { pageUuid: 'page-uuid', url: '/' });
+});
+socket.on('widgets', widgets => {
+  console.log('widgets:', widgets);
 });
