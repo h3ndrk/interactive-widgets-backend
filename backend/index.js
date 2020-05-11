@@ -118,11 +118,29 @@ class Volume {
   }
 }
 
+class LongRunningContainer {
+  constructor(docker, pageUuid, url) {
+    this.docker = docker;
+    this.pageUuid = pageUuid;
+    this.url = url;
+    this.hash = hashFromPageUuidAndUrl(this.pageUuid, this.url);
+    this.volumeName = `containerized-playground-${this.hash}`;
+  }
+  async create() {
+    console.log(`Creating volume ${this.volumeName} ...`);
+    this.volume = await this.docker.createVolume({ name: this.volumeName });
+  }
+  async remove() {
+    console.log(`Removing volume ${this.volumeName} ...`);
+    await this.volume.remove();
+  }
+}
+
 class DockerBackend {
   constructor(docker, pages) {
     this.docker = docker;
     this.pages = pages;
-    this.clients = [];
+    this.clients = {}; // page/UUID hash -> [clients]
     this.volumes = {}; // page/UUID hash -> volume
     this.containers = {}; // page/UUID hash -> [container]
   }
@@ -133,17 +151,26 @@ class DockerBackend {
   }
   addClient(socket) {
     const client = new Client(socket);
-    this.clients = [...this.clients, client];
     console.log(`+ client ${client.id}`);
 
     client.socket.on('disconnect', async () => {
       console.log(`- client ${client.id}`);
-      this.clients = this.clients.filter(c => c.id != client.id);
 
-      const volumeHash = hashFromPageUuidAndUrl(client.pageUuid, client.url);
-      await this.volumes[volumeHash].deregisterClient();
-      if (this.volumes[volumeHash].isOrphan())
-        delete this.volumes[volumeHash];
+      if (!client.pageUuid || !client.url)
+        return;
+
+      const pageUuidHash = hashFromPageUuidAndUrl(client.pageUuid, client.url);
+      if (this.clients[pageUuidHash]) {
+        this.clients[pageUuidHash] = this.clients[pageUuidHash].filter(c => c.id != client.id);
+
+        if (this.clients[pageUuidHash].length === 0) {
+          const { [pageUuidHash]: clientToRemove, ...clients } = this.clients;
+          this.clients = clients;
+          await this.volumes[pageUuidHash].remove();
+          const { [pageUuidHash]: volumeToRemove, ...volumes } = this.volumes;
+          this.volumes = volumes;
+        }
+      }
     });
 
     client.socket.on('request', async request => {
@@ -156,10 +183,13 @@ class DockerBackend {
       client.url = request.url;
       console.log(`  client ${client.id} (${client.pageUuid}) @ ${client.url}`);
 
-      const volumeHash = hashFromPageUuidAndUrl(client.pageUuid, client.url);
-      if (!this.volumes[volumeHash])
-        this.volumes[volumeHash] = new Volume(this.docker, client.pageUuid, client.url);
-      await this.volumes[volumeHash].registerClient();
+      const pageUuidHash = hashFromPageUuidAndUrl(client.pageUuid, client.url);
+      if (!this.clients[pageUuidHash]) {
+        this.clients[pageUuidHash] = [];
+        this.volumes[pageUuidHash] = new Volume(this.docker, client.pageUuid, client.url);
+        await this.volumes[pageUuidHash].create();
+      }
+      this.clients[pageUuidHash] = [...this.clients[pageUuidHash], client];
 
       client.sendWidgets(this.pages);
     });
