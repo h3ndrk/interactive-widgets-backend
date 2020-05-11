@@ -73,11 +73,15 @@ class Client {
     this.url = null;
   }
   sendPages(pages) {
-    this.socket.emit('pages', pages.map(page => page.url));
+    this.socket.emit('pages', Object.keys(pages));
   }
   sendWidgets(pages) {
-    this.socket.emit('widgets', pages.find(page => page.url).widgets);
+    this.socket.emit('widgets', pages[this.url].widgets);
   }
+}
+
+function hashFromPageUuidAndUrl(pageUuid, url) {
+  return crypto.createHash('sha256').update(`${pageUuid} ${url}`).digest('hex');
 }
 
 class Volume {
@@ -85,7 +89,7 @@ class Volume {
     this.docker = docker;
     this.pageUuid = pageUuid;
     this.url = url;
-    this.hash = Volume.hashFromPageUuidAndUrl(this.pageUuid, this.url);
+    this.hash = hashFromPageUuidAndUrl(this.pageUuid, this.url);
     this.volumeName = `containerized-playground-${this.hash}`;
     this.numberOfClients = 0;
   }
@@ -112,9 +116,6 @@ class Volume {
     console.log(`Removing volume ${this.volumeName} ...`);
     await this.volume.remove();
   }
-  static hashFromPageUuidAndUrl(pageUuid, url) {
-    return crypto.createHash('sha256').update(`${pageUuid} ${url}`).digest('hex');
-  }
 }
 
 class DockerBackend {
@@ -122,12 +123,12 @@ class DockerBackend {
     this.docker = docker;
     this.pages = pages;
     this.clients = [];
-    this.volumes = {};
-    // this.containers = [];
+    this.volumes = {}; // page/UUID hash -> volume
+    this.containers = {}; // page/UUID hash -> [container]
   }
   async buildPages() {
-    for (const page of this.pages) {
-      await page.buildImage(this.docker);
+    for (const url of Object.keys(this.pages)) {
+      await this.pages[url].buildImage(this.docker);
     }
   }
   addClient(socket) {
@@ -139,22 +140,23 @@ class DockerBackend {
       console.log(`- client ${client.id}`);
       this.clients = this.clients.filter(c => c.id != client.id);
 
-      const volumeHash = Volume.hashFromPageUuidAndUrl(client.pageUuid, client.url);
+      const volumeHash = hashFromPageUuidAndUrl(client.pageUuid, client.url);
       await this.volumes[volumeHash].deregisterClient();
       if (this.volumes[volumeHash].isOrphan())
         delete this.volumes[volumeHash];
     });
 
     client.socket.on('request', async request => {
-      if (!this.pages.find(page => page.url === request.url)) {
+      if (!this.pages[request.url]) {
         console.warn(`! client ${client.id} (${request.pageUuid}) @ ${request.url} (URL does not exist)`);
         return;
       }
+
       client.pageUuid = request.pageUuid;
       client.url = request.url;
       console.log(`  client ${client.id} (${client.pageUuid}) @ ${client.url}`);
 
-      const volumeHash = Volume.hashFromPageUuidAndUrl(client.pageUuid, client.url);
+      const volumeHash = hashFromPageUuidAndUrl(client.pageUuid, client.url);
       if (!this.volumes[volumeHash])
         this.volumes[volumeHash] = new Volume(this.docker, client.pageUuid, client.url);
       await this.volumes[volumeHash].registerClient();
@@ -173,10 +175,10 @@ async function main() {
   program.parse(process.argv);
   const docker = new Docker();
 
-  let pages = [];
+  let pages = {};
   for await (const page of getPages(pagesDirectory)) {
     await page.readPage();
-    pages = [...pages, page];
+    pages = { ...pages, [page.url]: page };
   }
 
   const dockerBackend = new DockerBackend(docker, pages);
