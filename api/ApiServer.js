@@ -61,7 +61,9 @@ class ApiServer extends EventEmitter {
       response.on('close', () => {
         this.pageStreams = Object.keys(this.pageStreams).reduce((pageStreams, currentPageHash) => ({
           ...pageStreams,
-          ...(currentPageHash === pageHash && this.pageStreams[currentPageHash].length === 1 ? {} : { [currentPageHash]: this.pageStreams[currentPageHash].filter(pageStream => pageStream !== stream) }),
+          ...(currentPageHash === pageHash && this.pageStreams[currentPageHash].length === 1 ? {} : {
+            [currentPageHash]: this.pageStreams[currentPageHash].filter(pageStream => pageStream !== stream),
+          }),
         }), {});
         stream.unpipe(response);
         if (!this.pageStreams[pageHash])
