@@ -2,14 +2,19 @@ const ApiServer = require('./ApiServer');
 const apiServer = new ApiServer();
 apiServer.setPages({
   '/': {},
-  '/run': {},
+  '/run': {
+    widgets: [
+      { type: 'markdown', content: '# Yo this works!' },
+      { type: 'text', file: '/test.txt' },
+    ],
+  },
 });
-setTimeout(() => {
-  apiServer.setPages({
-    '/': {},
-    '/run': {},
-  });
-}, 10000);
+// setTimeout(() => {
+//   apiServer.setPages({
+//     '/': {},
+//     '/run': {},
+//   });
+// }, 10000);
 apiServer.on('instantiate', (pageUuid, url) => {
   console.log('instantiate:', pageUuid, url);
 });

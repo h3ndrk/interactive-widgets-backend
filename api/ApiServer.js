@@ -31,8 +31,10 @@ class ApiServer extends EventEmitter {
     this.app.get(['/page', '/page/*'], (request, response) => {
       // TODO: test that client stream is added to pagesStream (and removed if disconnected)
       // TODO: test 404 and 400 (negatives and positives)
+      // TODO: test that server emits 'widgets' event on connect
       const requestUrl = new url.URL(path.join(path.sep, path.relative('/page', request.url)), 'http://localhost/');
-      if (!this.pages[requestUrl.pathname]) {
+      const pageUrl = requestUrl.pathname;
+      if (!this.pages[pageUrl]) {
         console.log(`${request.url} -> 404`);
         response.sendStatus(404);
         return;
@@ -44,14 +46,18 @@ class ApiServer extends EventEmitter {
       }
       const stream = new SseStream(request);
       const pageUuid = requestUrl.searchParams.get('pageUuid');
-      const pageHash = hashFromPageUuidAndUrl(pageUuid, requestUrl.pathname);
+      const pageHash = hashFromPageUuidAndUrl(pageUuid, pageUrl);
       if (!this.pageStreams[pageHash])
-        this.emit('instantiate', pageUuid, requestUrl.pathname);
+        this.emit('instantiate', pageUuid, pageUrl);
       this.pageStreams = {
         ...this.pageStreams,
         [pageHash]: [...(this.pageStreams[pageHash] || []), stream],
       };
       stream.pipe(response);
+      stream.write({
+        event: 'widgets',
+        data: this.pages[pageUrl].widgets,
+      });
       response.on('close', () => {
         this.pageStreams = Object.keys(this.pageStreams).reduce((pageStreams, currentPageHash) => ({
           ...pageStreams,
@@ -59,7 +65,7 @@ class ApiServer extends EventEmitter {
         }), {});
         stream.unpipe(response);
         if (!this.pageStreams[pageHash])
-          this.emit('teardown', pageUuid, requestUrl.pathname);
+          this.emit('teardown', pageUuid, pageUrl);
       });
     });
   }
