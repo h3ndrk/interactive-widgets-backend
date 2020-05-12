@@ -6,74 +6,73 @@ const express = require('express');
 const SseStream = require('ssestream');
 
 class ApiServer extends EventEmitter {
-  constructor() {
+  constructor(pages) {
     super();
-    this.pages = {};
+    this.pages = pages;
+    this.streams = {};
+    this.widgetsToStreams = {};
     this.pagesStreams = [];
     this.pageStreams = {};
+    this.activeWidgets = {};
     this.app = express();
     this.app.disable('x-powered-by');
-    this.app.get('/pages', (request, response) => {
-      // TODO: test that client stream is added to pagesStream (and removed if disconnected)
-      // TODO: test that server emits 'pages' event on connect
-      const stream = new SseStream(request);
-      this.pagesStreams = [...this.pagesStreams, stream];
-      stream.pipe(response);
-      stream.write({
-        event: 'pages',
-        data: Object.keys(this.pages),
-      });
-      response.on('close', () => {
-        this.pagesStreams = this.pagesStreams.filter(pagesStream => pagesStream !== stream);
-        stream.unpipe(response);
-      });
+    this.app.get('/pages', (_, response) => {
+      // TODO: test that server responds with 'pages'
+      response.json(Object.keys(this.pages));
     });
-    this.app.get(['/page', '/page/*'], (request, response) => {
-      // TODO: test that client stream is added to pagesStream (and removed if disconnected)
-      // TODO: test 404 and 400 (negatives and positives)
-      // TODO: test that server emits 'widgets' event on connect
-      // TODO: test that hashes are unique
+    this.app.get(['/page/widgets', '/page/*/widgets'], (request, response) => {
       const requestUrl = new url.URL(request.url, 'http://localhost/');
-      const pageUrl = path.join(path.sep, path.relative('/page', requestUrl.pathname));
+      const trimmedPath = path.join(path.sep, path.relative('/page', requestUrl.pathname));
+      const pageUrl = path.dirname(trimmedPath);
       if (!this.pages[pageUrl]) {
-        console.log(`${request.url} (${pageUrl}) -> 404`);
+        console.log(`${request.url} -> 404 (page not found)`);
         response.sendStatus(404);
         return;
       }
-      if (!requestUrl.searchParams.get('pageUuid')) {
-        console.log(`${request.url} (${pageUrl}) -> 400`);
+      response.json(this.pages[pageUrl].widgets);
+    });
+    this.app.get(['/page/updates/:uuid', '/page/*/updates/:uuid'], (request, response) => {
+      // TODO: test that client stream is added to streams (and removed if disconnected)
+      // TODO: test 404 and 400 (negatives and positives)
+      const requestUrl = new url.URL(request.url, 'http://localhost/');
+      const trimmedPath = path.join(path.sep, path.relative('/page', requestUrl.pathname));
+      const pageUrl = path.dirname(path.dirname(trimmedPath));
+      if (!this.pages[pageUrl]) {
+        console.log(`${request.url} -> 404 (page not found)`);
+        response.sendStatus(404);
+        return;
+      }
+      if (!request.params['uuid']) {
+        console.log(`${request.url} (${pageUrl}) -> 400 (uuid missing)`);
         response.sendStatus(400);
         return;
       }
+      const uuid = request.params['uuid'];
+      // https://gist.github.com/johnelliott/cf77003f72f889abbc3f32785fa3df8d
+      if (!uuid.match(/^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i)) {
+        console.log(`${request.url} (${pageUrl}) -> 400 (malformed uuid)`);
+        response.sendStatus(400);
+        return;
+      }
+      const pageId = path.join(pageUrl, uuid);
       const stream = new SseStream(request);
-      const pageUuid = requestUrl.searchParams.get('pageUuid');
-      const pageHash = crypto.createHash('sha256').update(`${pageUuid} ${pageUrl}`).digest('hex');
-      const pageStream = {
-        stream: stream,
-        uuid: pageUuid,
-        url: pageUrl,
-      };
-      if (!this.pageStreams[pageHash])
-        this.emit('instantiate', pageUuid, pageUrl);
-      this.pageStreams = {
-        ...this.pageStreams,
-        [pageHash]: [...(this.pageStreams[pageHash] || []), pageStream],
-      };
       stream.pipe(response);
-      stream.write({
-        event: 'widgets',
-        data: this.convertWidgets(pageUuid, pageUrl),
-      });
+      if (!this.streams[pageId])
+        this.emit('instantiate', pageId);
+      this.streams = {
+        ...this.streams,
+        [pageId]: [...(this.streams[pageId] || []), stream],
+      };
       response.on('close', () => {
-        this.pageStreams = Object.keys(this.pageStreams).reduce((pageStreams, currentPageHash) => ({
-          ...pageStreams,
-          ...(currentPageHash === pageHash && this.pageStreams[currentPageHash].length === 1 ? {} : {
-            [currentPageHash]: this.pageStreams[currentPageHash].filter(currentPageStream => currentPageStream !== pageStream),
+        this.streams = Object.keys(this.streams).reduce((streams, pageId_) => ({
+          ...streams,
+          ...(pageId_ === pageId && this.streams[pageId_].length === 1 ? {} : {
+            [pageId_]: this.streams[pageId_].filter(pageStream => pageStream !== stream),
           }),
         }), {});
         stream.unpipe(response);
-        if (!this.pageStreams[pageHash])
-          this.emit('teardown', pageUuid, pageUrl);
+        if (!this.streams[pageId])
+          this.emit('teardown', pageId);
       });
     });
   }
@@ -84,61 +83,18 @@ class ApiServer extends EventEmitter {
         throw error;
     });
   }
-  setPages(pages) {
-    // TODO: test setting pages, while connected to /pages and /page/...
-    this.pages = pages;
-    for (const pagesStream of this.pagesStreams) {
-      pagesStream.write({
-        event: 'pages',
-        data: Object.keys(pages),
-      });
-    }
-    for (const pageHash of Object.keys(this.pageStreams)) {
-      for (const pageStream of this.pageStreams[pageHash]) {
-        pageStream.stream.write({
-          event: 'pages',
-          data: Object.keys(pages),
-        });
-        pageStream.stream.write({
-          event: 'widgets',
-          data: this.convertWidgets(pageStream.uuid, pageStream.url),
-        });
-      }
-    }
-  }
-  convertWidgets(pageUuid, pageUrl) {
-    return this.pages[pageUrl].widgets.map((widget, index) => {
-      switch (widget.type) {
-        case 'text':
-          return {
-            ...widget,
-            hash: crypto.createHash('sha256').update(`${pageUuid} ${pageUrl} ${widget.file} ${index}`).digest('hex'),
-          };
-        case 'image':
-          return {
-            ...widget,
-            hash: crypto.createHash('sha256').update(`${pageUuid} ${pageUrl} ${widget.file} ${index}`).digest('hex'),
-          };
-        case 'button':
-          return {
-            ...widget,
-            hash: crypto.createHash('sha256').update(`${pageUuid} ${pageUrl} ${widget.label} ${widget.command} ${index}`).digest('hex'),
-          };
-        case 'editor':
-          return {
-            ...widget,
-            hash: crypto.createHash('sha256').update(`${pageUuid} ${pageUrl} ${widget.file} ${index}`).digest('hex'),
-          };
-        case 'terminal':
-          return {
-            ...widget,
-            hash: crypto.createHash('sha256').update(`${pageUuid} ${pageUrl} ${widget.workingDirectory} ${index}`).digest('hex'),
-          };
-        default:
-          return widget;
-      }
-    });
-  }
+  // widgetHash is public
+  // pageHash is private
+  // widgetHash -> stream
+  // emits: 'instantiate' (pageHash)
+  // emits: 'teardown' (pageHash)
+  sendTextData(widgetHash, data) { }
+  sendImageData(widgetHash, data) { }
+  // emits: 'executeButton' (pageHash, widgetHash)
+  sendButtonOutput(widgetHash, output) { }
+  // emits: 'sendEditorData' (pageHash, widgetHash)
+  sendEditorData(widgetHash, data) { }
+  sendTerminalOutput(widgetHash, output) { }
 }
 
 module.exports = ApiServer;
