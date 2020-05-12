@@ -1,11 +1,13 @@
 const path = require('path');
 const url = require('url');
+const EventEmitter = require('events');
 const express = require('express');
 const SseStream = require('ssestream');
 const hashFromPageUuidAndUrl = require('./hashFromPageUuidAndUrl');
 
-class ApiServer {
+class ApiServer extends EventEmitter {
   constructor() {
+    super();
     this.pages = {};
     this.pagesStreams = [];
     this.pageStreams = {};
@@ -43,6 +45,8 @@ class ApiServer {
       const stream = new SseStream(request);
       const pageUuid = requestUrl.searchParams.get('pageUuid');
       const pageHash = hashFromPageUuidAndUrl(pageUuid, requestUrl.pathname);
+      if (!this.pageStreams[pageHash])
+        this.emit('instantiate', pageUuid, requestUrl.pathname);
       this.pageStreams = {
         ...this.pageStreams,
         [pageHash]: [...(this.pageStreams[pageHash] || []), stream],
@@ -51,9 +55,11 @@ class ApiServer {
       response.on('close', () => {
         this.pageStreams = Object.keys(this.pageStreams).reduce((pageStreams, currentPageHash) => ({
           ...pageStreams,
-          ...(currentPageHash === pageHash ? {} : { [currentPageHash]: this.pageStreams[currentPageHash] }),
+          ...(currentPageHash === pageHash && this.pageStreams[currentPageHash].length === 1 ? {} : { [currentPageHash]: this.pageStreams[currentPageHash].filter(pageStream => pageStream !== stream) }),
         }), {});
         stream.unpipe(response);
+        if (!this.pageStreams[pageHash])
+          this.emit('teardown', pageUuid, requestUrl.pathname);
       });
     });
   }
@@ -74,10 +80,12 @@ class ApiServer {
       });
     }
     for (const pageHash of Object.keys(this.pageStreams)) {
-      this.pageStreams[pageHash].write({
-        event: 'pages',
-        data: pages,
-      });
+      for (const pageStream of this.pageStreams[pageHash]) {
+        pageStream.write({
+          event: 'pages',
+          data: pages,
+        });
+      }
     }
   }
 }
