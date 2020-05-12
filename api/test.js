@@ -43,13 +43,23 @@ const apiServer = new ApiServer({
 //     ],
 //   },
 // });
-// setTimeout(() => {
-//   apiServer.setPages(apiServer.pages);
-// }, 10000);
+setTimeout(() => {
+  apiServer.sendTextContents('/run/434420a4-7440-4da2-acc2-00391b6c5e64/1', 'foo');
+}, 10000);
 apiServer.on('instantiate', pageId => {
   console.log('instantiate:', pageId);
 });
 apiServer.on('teardown', pageId => {
   console.log('teardown:', pageId);
+});
+apiServer.on('buttonClick', widgetId => {
+  console.log('button click:', widgetId);
+});
+apiServer.on('editorContents', (widgetId, contents) => {
+  console.log('editor contents:', widgetId, contents);
+});
+apiServer.on('terminalInput', (widgetId, input) => {
+  console.log('terminal input:', widgetId, input);
+  apiServer.sendTerminalOutput(widgetId, input);
 });
 apiServer.listen(8080);
