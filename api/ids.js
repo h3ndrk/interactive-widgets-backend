@@ -45,11 +45,11 @@ module.exports = {
   idToEncodedId: id => {
     if (!id || typeof id !== 'string' || id.length === 0)
       throw new Error(`Malformed ID: ${id}`);
-    return new Buffer(id).toString('hex');
+    return Buffer.from(id).toString('hex');
   },
   encodedIdToId: encodedId => {
     if (!encodedId || typeof encodedId !== 'string' || encodedId.length === 0)
       throw new Error(`Malformed ID: ${encodedId}`);
-    return new Buffer(encodedId, 'hex').toString();
+    return Buffer.from(encodedId, 'hex').toString();
   },
 };
