@@ -1,8 +1,8 @@
 const { program } = require('commander');
 const Docker = require('dockerode');
-const getPages = require('./getPages');
+const getPages = require('./pages');
 const ApiServer = require('./ApiServer');
-const DockerBackend = require('./DockerBackend');
+const DockerOperator = require('./DockerOperator');
 
 async function main() {
   let pagesDirectory;
@@ -10,17 +10,21 @@ async function main() {
     pagesDirectory = pagesValue;
   });
   program.parse(process.argv);
-  const docker = new Docker();
 
-  let pages = {};
-  for await (const page of getPages(pagesDirectory)) {
-    await page.readPage();
-    pages = { ...pages, [page.url]: page };
-  }
+  const pages = await getPages(pagesDirectory);
+
+  const dockerOperator = new DockerOperator(pages);
+  await dockerOperator.cleanup();
+  await dockerOperator.buildImages();
 
   const apiServer = new ApiServer(pages);
-  const dockerBackend = new DockerBackend(docker, pages, apiServer);
-  await dockerBackend.buildPages();
+
+  apiServer.onStartPage = dockerOperator.startPage.bind(dockerOperator);
+  apiServer.onStopPage = dockerOperator.stopPage.bind(dockerOperator);
+  apiServer.onButtonClick = dockerOperator.buttonClick.bind(dockerOperator);
+
+  dockerOperator.sendButtonOutput = apiServer.sendButtonOutput.bind(apiServer);
+
   console.log('Listening at http://localhost:8080/ ...');
   apiServer.listen(8080);
 }
