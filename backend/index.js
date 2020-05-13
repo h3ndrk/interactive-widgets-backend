@@ -1,7 +1,7 @@
 const { program } = require('commander');
 const Docker = require('dockerode');
 const getPages = require('./getPages');
-const ApiServer = require('api/ApiServer');
+const ApiServer = require('./ApiServer');
 const DockerBackend = require('./DockerBackend');
 
 async function main() {
@@ -21,6 +21,7 @@ async function main() {
   const apiServer = new ApiServer(pages);
   const dockerBackend = new DockerBackend(docker, pages, apiServer);
   await dockerBackend.buildPages();
+  console.log('Listening at http://localhost:8080/ ...');
   apiServer.listen(8080);
 }
 

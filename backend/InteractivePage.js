@@ -1,5 +1,5 @@
 const StaticPage = require('./StaticPage');
-const ids = require('api/ids');
+const ids = require('./ids');
 
 class InteractivePage extends StaticPage {
   constructor(basePath, url, dockerfilePath) {

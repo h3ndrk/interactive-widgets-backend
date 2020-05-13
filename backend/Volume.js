@@ -1,4 +1,4 @@
-const ids = require('api/ids');
+const ids = require('./ids');
 
 class Volume {
   constructor(docker, pageId) {

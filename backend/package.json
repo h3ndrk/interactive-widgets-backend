@@ -9,11 +9,14 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "api": "file:../api",
     "commander": "^5.1.0",
     "dockerode": "^3.2.0",
     "parse5": "^6.0.0",
-    "socket.io": "^2.3.0",
-    "socket.io-client": "^2.3.0"
+    "express": "^4.17.1",
+    "ssestream": "1.0.1"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^7.1.2"
   }
 }
