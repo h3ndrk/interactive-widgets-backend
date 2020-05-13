@@ -1,5 +1,4 @@
 const { program } = require('commander');
-const Docker = require('dockerode');
 const getPages = require('./pages');
 const ApiServer = require('./ApiServer');
 const DockerOperator = require('./DockerOperator');
