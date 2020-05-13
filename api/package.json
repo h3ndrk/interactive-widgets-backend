@@ -1,5 +1,5 @@
 {
-  "name": "server",
+  "name": "api",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -10,6 +10,10 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "base36": "^1.0.0",
+    "cross-fetch": "^3.0.4",
+    "customevent": "^1.0.1",
+    "event-target-shim": "^5.0.1",
     "eventsource": "^1.0.7",
     "express": "^4.17.1",
     "ssestream": "1.0.1"
