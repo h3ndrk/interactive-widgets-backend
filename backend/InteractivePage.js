@@ -1,12 +1,11 @@
-const crypto = require('crypto');
 const StaticPage = require('./StaticPage');
+const ids = require('api/ids');
 
 class InteractivePage extends StaticPage {
   constructor(basePath, url, dockerfilePath) {
     super(basePath, url);
     this.dockerfilePath = dockerfilePath;
-    this.hash = crypto.createHash('sha256').update(this.url).digest('hex');
-    this.imageName = `containerized-playground-${this.hash}`;
+    this.imageName = `containerized-playground-${ids.idToEncodedId(url)}`;
   }
   async buildImage(docker) {
     await super.buildImage(docker);

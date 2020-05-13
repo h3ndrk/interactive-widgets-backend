@@ -1,12 +1,10 @@
-const hashFromPageUuidAndUrl = require('./hashFromPageUuidAndUrl');
+const ids = require('api/ids');
 
 class Volume {
-  constructor(docker, pageUuid, url) {
+  constructor(docker, pageId) {
     this.docker = docker;
-    this.pageUuid = pageUuid;
-    this.url = url;
-    this.hash = hashFromPageUuidAndUrl(this.pageUuid, this.url);
-    this.volumeName = `containerized-playground-${this.hash}`;
+    this.pageId = pageId;
+    this.volumeName = `containerized-playground-${ids.idToEncodedId(pageId)}`;
   }
   async create() {
     console.log(`Creating volume ${this.volumeName} ...`);

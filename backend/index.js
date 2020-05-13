@@ -1,7 +1,7 @@
 const { program } = require('commander');
 const Docker = require('dockerode');
-const io = require('socket.io');
 const getPages = require('./getPages');
+const ApiServer = require('api/ApiServer');
 const DockerBackend = require('./DockerBackend');
 
 async function main() {
@@ -18,11 +18,10 @@ async function main() {
     pages = { ...pages, [page.url]: page };
   }
 
-  const dockerBackend = new DockerBackend(docker, pages);
+  const apiServer = new ApiServer(pages);
+  const dockerBackend = new DockerBackend(docker, pages, apiServer);
   await dockerBackend.buildPages();
-
-  console.log('Listening ...');
-  io.listen(3001).on('connect', dockerBackend.addClient.bind(dockerBackend));
+  apiServer.listen(8080);
 }
 
 main();
