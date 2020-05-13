@@ -1,14 +1,17 @@
 const path = require('path');
 const url = require('url');
-const crypto = require('crypto');
-const EventEmitter = require('events');
 const express = require('express');
 const SseStream = require('ssestream');
+const ids = require('./ids');
 
-class ApiServer extends EventEmitter {
+class ApiServer {
   constructor(pages) {
-    super();
     this.pages = pages;
+    this.onStartPage = async () => { };
+    this.onStopPage = async () => { };
+    this.onButtonClick = async () => { };
+    this.onEditorContents = async () => { };
+    this.onTerminalInput = async () => { };
     this.streams = {};
     this.app = express();
     this.app.disable('x-powered-by');
@@ -28,7 +31,7 @@ class ApiServer extends EventEmitter {
       }
       response.json(this.pages[pageUrl].widgets);
     });
-    this.app.get(['/page/widget/:widgetIndex/button-click/:uuid', '/page/*/widget/:widgetIndex/button-click/:uuid'], (request, response) => {
+    this.app.get(['/page/widget/:widgetIndex/button-click/:uuid', '/page/*/widget/:widgetIndex/button-click/:uuid'], async (request, response) => {
       const requestUrl = new url.URL(request.url, 'http://localhost/');
       const trimmedPath = path.join(path.sep, path.relative('/page', requestUrl.pathname));
       const pageUrl = path.dirname(path.dirname(path.dirname(path.dirname(trimmedPath))));
@@ -66,10 +69,10 @@ class ApiServer extends EventEmitter {
         response.sendStatus(400);
         return;
       }
-      this.emit('buttonClick', path.join(pageUrl, uuid, widgetIndex.toString()));
+      await this.onButtonClick(ids.urlAndUuidAndWidgetIndexToWidgetId(pageUrl, uuid, widgetIndex));
       response.sendStatus(200);
     });
-    this.app.post(['/page/widget/:widgetIndex/editor-contents/:uuid', '/page/*/widget/:widgetIndex/editor-contents/:uuid'], (request, response) => {
+    this.app.post(['/page/widget/:widgetIndex/editor-contents/:uuid', '/page/*/widget/:widgetIndex/editor-contents/:uuid'], async (request, response) => {
       const requestUrl = new url.URL(request.url, 'http://localhost/');
       const trimmedPath = path.join(path.sep, path.relative('/page', requestUrl.pathname));
       const pageUrl = path.dirname(path.dirname(path.dirname(path.dirname(trimmedPath))));
@@ -107,10 +110,10 @@ class ApiServer extends EventEmitter {
         response.sendStatus(400);
         return;
       }
-      this.emit('editorContents', path.join(pageUrl, uuid, widgetIndex.toString()), request.body);
+      await this.onEditorContents(ids.urlAndUuidAndWidgetIndexToWidgetId(pageUrl, uuid, widgetIndex), request.body);
       response.sendStatus(200);
     });
-    this.app.post(['/page/widget/:widgetIndex/terminal-input/:uuid', '/page/*/widget/:widgetIndex/terminal-input/:uuid'], (request, response) => {
+    this.app.post(['/page/widget/:widgetIndex/terminal-input/:uuid', '/page/*/widget/:widgetIndex/terminal-input/:uuid'], async (request, response) => {
       const requestUrl = new url.URL(request.url, 'http://localhost/');
       const trimmedPath = path.join(path.sep, path.relative('/page', requestUrl.pathname));
       const pageUrl = path.dirname(path.dirname(path.dirname(path.dirname(trimmedPath))));
@@ -148,10 +151,10 @@ class ApiServer extends EventEmitter {
         response.sendStatus(400);
         return;
       }
-      this.emit('terminalInput', path.join(pageUrl, uuid, widgetIndex.toString()), request.body);
+      await this.onTerminalInput(ids.urlAndUuidAndWidgetIndexToWidgetId(pageUrl, uuid, widgetIndex), request.body);
       response.sendStatus(200);
     });
-    this.app.get(['/page/updates/:uuid', '/page/*/updates/:uuid'], (request, response) => {
+    this.app.get(['/page/updates/:uuid', '/page/*/updates/:uuid'], async (request, response) => {
       // TODO: test that client stream is added to streams (and removed if disconnected)
       // TODO: test 404 and 400 (negatives and positives)
       const requestUrl = new url.URL(request.url, 'http://localhost/');
@@ -174,16 +177,16 @@ class ApiServer extends EventEmitter {
         response.sendStatus(400);
         return;
       }
-      const pageId = path.join(pageUrl, uuid);
+      const pageId = ids.urlAndUuidToPageId(pageUrl, uuid);
       const stream = new SseStream(request);
       stream.pipe(response);
       if (!this.streams[pageId])
-        this.emit('instantiate', pageId);
+        await this.onStartPage(pageId);
       this.streams = {
         ...this.streams,
         [pageId]: [...(this.streams[pageId] || []), stream],
       };
-      response.on('close', () => {
+      response.on('close', async () => {
         this.streams = Object.keys(this.streams).reduce((streams, pageId_) => ({
           ...streams,
           ...(pageId_ === pageId && this.streams[pageId_].length === 1 ? {} : {
@@ -192,7 +195,7 @@ class ApiServer extends EventEmitter {
         }), {});
         stream.unpipe(response);
         if (!this.streams[pageId])
-          this.emit('teardown', pageId);
+          await this.onStopPage(pageId);
       });
     });
   }
@@ -204,10 +207,9 @@ class ApiServer extends EventEmitter {
     });
   }
   sendTextContents(widgetId, contents) {
-    const widgetIndex = parseInt(path.basename(widgetId));
-    const pageId = path.dirname(widgetId);
-    const pageUrl = path.dirname(pageId);
-    if (!this.streams[pageId] || this.pages[pageUrl].widgets[widgetIndex].type !== 'text') {
+    const {url, uuid, widgetIndex} = ids.widgetIdToUrlAndUuidAndWidgetIndex(widgetId);
+    const pageId = ids.urlAndUuidToPageId(url, uuid);
+    if (!this.streams[pageId] || this.pages[url].widgets[widgetIndex].type !== 'text') {
       console.log(`Dropping text contents for ${widgetId} ... (widget not existing or wrong type)`);
       return;
     }
@@ -222,10 +224,9 @@ class ApiServer extends EventEmitter {
     });
   }
   sendImageData(widgetId, data) {
-    const widgetIndex = parseInt(path.basename(widgetId));
-    const pageId = path.dirname(widgetId);
-    const pageUrl = path.dirname(pageId);
-    if (!this.streams[pageId] || this.pages[pageUrl].widgets[widgetIndex].type !== 'image') {
+    const { url, uuid, widgetIndex } = ids.widgetIdToUrlAndUuidAndWidgetIndex(widgetId);
+    const pageId = ids.urlAndUuidToPageId(url, uuid);
+    if (!this.streams[pageId] || this.pages[url].widgets[widgetIndex].type !== 'image') {
       console.log(`Dropping image data for ${widgetId} ... (widget not existing or wrong type)`);
       return;
     }
@@ -240,10 +241,9 @@ class ApiServer extends EventEmitter {
     });
   }
   sendButtonOutput(widgetId, output) {
-    const widgetIndex = parseInt(path.basename(widgetId));
-    const pageId = path.dirname(widgetId);
-    const pageUrl = path.dirname(pageId);
-    if (!this.streams[pageId] || this.pages[pageUrl].widgets[widgetIndex].type !== 'button') {
+    const { url, uuid, widgetIndex } = ids.widgetIdToUrlAndUuidAndWidgetIndex(widgetId);
+    const pageId = ids.urlAndUuidToPageId(url, uuid);
+    if (!this.streams[pageId] || this.pages[url].widgets[widgetIndex].type !== 'button') {
       console.log(`Dropping button output for ${widgetId} ... (widget not existing or wrong type)`);
       return;
     }
@@ -258,10 +258,9 @@ class ApiServer extends EventEmitter {
     });
   }
   sendEditorContents(widgetId, contents) {
-    const widgetIndex = parseInt(path.basename(widgetId));
-    const pageId = path.dirname(widgetId);
-    const pageUrl = path.dirname(pageId);
-    if (!this.streams[pageId] || this.pages[pageUrl].widgets[widgetIndex].type !== 'editor') {
+    const { url, uuid, widgetIndex } = ids.widgetIdToUrlAndUuidAndWidgetIndex(widgetId);
+    const pageId = ids.urlAndUuidToPageId(url, uuid);
+    if (!this.streams[pageId] || this.pages[url].widgets[widgetIndex].type !== 'editor') {
       console.log(`Dropping editor contents for ${widgetId} ... (widget not existing or wrong type)`);
       return;
     }
@@ -273,12 +272,12 @@ class ApiServer extends EventEmitter {
           contents: contents,
         },
       })
-    });}
+    });
+  }
   sendTerminalOutput(widgetId, output) {
-    const widgetIndex = parseInt(path.basename(widgetId));
-    const pageId = path.dirname(widgetId);
-    const pageUrl = path.dirname(pageId);
-    if (!this.streams[pageId] || this.pages[pageUrl].widgets[widgetIndex].type !== 'terminal') {
+    const { url, uuid, widgetIndex } = ids.widgetIdToUrlAndUuidAndWidgetIndex(widgetId);
+    const pageId = ids.urlAndUuidToPageId(url, uuid);
+    if (!this.streams[pageId] || this.pages[url].widgets[widgetIndex].type !== 'terminal') {
       console.log(`Dropping terminal output for ${widgetId} ... (widget not existing or wrong type)`);
       return;
     }
