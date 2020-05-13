@@ -43,27 +43,32 @@ module.exports = markdown => {
         switch (widgetElement.tagName) {
           case 'x-text':
             return {
+              isInteractive: true,
               type: 'text',
               file: getAttribute(widgetElement, 'file'),
             };
           case 'x-image':
             return {
+              isInteractive: true,
               type: 'image',
               file: getAttribute(widgetElement, 'file'),
             };
           case 'x-button':
             return {
+              isInteractive: true,
               type: 'button',
               label: widgetElement.childNodes[0].value,
               command: getAttribute(widgetElement, 'command'),
             };
           case 'x-editor':
             return {
+              isInteractive: true,
               type: 'editor',
               file: getAttribute(widgetElement, 'file'),
             };
           case 'x-terminal':
             return {
+              isInteractive: true,
               type: 'terminal',
               workingDirectory: getAttribute(widgetElement, 'working-directory'),
             };
@@ -71,6 +76,10 @@ module.exports = markdown => {
       }
     }
 
-    return { type: 'markdown', content: block };
+    return {
+      isInteractive: false,
+      type: 'markdown',
+      content: block
+    };
   });
 };
