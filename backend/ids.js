@@ -11,7 +11,7 @@ module.exports = {
   pageIdToUrlAndUuid: pageId => {
     if (!pageId || typeof pageId !== 'string' || pageId.length === 0)
       throw new Error(`Malformed PageID: ${pageId}`);
-    const matches = pageId.match(/^(\/.+)*\/[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i);
+    const matches = pageId.match(/^(\/.+)*\/([0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12})$/i);
     if (!matches)
       throw new Error(`Malformed PageID: ${pageId}`);
     return {
@@ -33,7 +33,7 @@ module.exports = {
   widgetIdToUrlAndUuidAndWidgetIndex: widgetId => {
     if (!widgetId || typeof widgetId !== 'string' || widgetId.length === 0)
       throw new Error(`Malformed WidgetID: ${widgetId}`);
-    const matches = widgetId.match(/^(\/.+)*\/[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}\/(\d+)$/i);
+    const matches = widgetId.match(/^(\/.+)*\/([0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12})\/(\d+)$/i);
     if (!matches)
       throw new Error(`Malformed WidgetID: ${widgetId}`);
     return {
