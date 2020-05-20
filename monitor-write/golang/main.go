@@ -8,6 +8,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 func main() {
@@ -35,7 +37,7 @@ func main() {
 			}
 		}
 		if err := scanner.Err(); err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintln(os.Stderr, errors.Wrap(err, "error while reading stdin"))
 		}
 		wg.Done()
 	}(&wg)

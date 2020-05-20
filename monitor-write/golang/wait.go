@@ -4,17 +4,18 @@ import (
 	"path/filepath"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/pkg/errors"
 )
 
 func waitForEvent(pathToWatch string, done <-chan struct{}) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to create new watcher")
 	}
 	defer watcher.Close()
 
 	if err := watcher.Add(pathToWatch); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to add watched child path %s", pathToWatch)
 	}
 	var parentPaths []string
 	currentPath := pathToWatch
@@ -24,7 +25,7 @@ func waitForEvent(pathToWatch string, done <-chan struct{}) error {
 	}
 	for _, parentPath := range parentPaths {
 		if err := watcher.Add(parentPath); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to add watched parent path %s", parentPath)
 		}
 	}
 
@@ -50,7 +51,7 @@ func waitForEvent(pathToWatch string, done <-chan struct{}) error {
 			if !ok {
 				return nil
 			}
-			return err
+			return errors.Wrap(err, "error while watching")
 		}
 	}
 }
