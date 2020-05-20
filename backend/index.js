@@ -24,6 +24,8 @@ async function main() {
   apiServer.onStopPage = dockerOperator.stopPage.bind(dockerOperator);
   apiServer.onButtonClick = dockerOperator.buttonClick.bind(dockerOperator);
 
+  dockerOperator.sendTextContents = apiServer.sendTextContents.bind(apiServer);
+  dockerOperator.sendImageData = apiServer.sendImageData.bind(apiServer);
   dockerOperator.sendButtonOutput = apiServer.sendButtonOutput.bind(apiServer);
 
   console.log('Listening at http://localhost:8080/ ...');
