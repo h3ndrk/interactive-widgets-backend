@@ -57,5 +57,8 @@ func main() {
 			}
 			continue
 		}
+		if _, ok := <-done; !ok {
+			break
+		}
 	}
 }
