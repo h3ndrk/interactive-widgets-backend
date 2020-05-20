@@ -9,6 +9,10 @@ import (
 )
 
 func main() {
+	if len(os.Args) != 2 {
+		fmt.Fprintln(os.Stderr, "Expected 2 parameters, got", len(os.Args), os.Args)
+		return
+	}
 	done := make(chan struct{})
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
@@ -16,16 +20,19 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Received signal:", <-signals)
 		close(done)
 	}()
-	pathToWatch := "/home/hendrik/Documents/containerized-playground/b/b/c/test.txt"
+	pathToWatch := os.Args[1]
 	lastEncoded := ""
-	// we need to first output an empty line because otherwise we don't output an empty line when the read results in an error
-	fmt.Println(lastEncoded)
+	didOutputAtLeastOnce := false
 	for {
 		encoded, err := readFileToBase64(pathToWatch)
 		// encoded will be empty or containing the base64 string
 		if encoded != lastEncoded {
+			didOutputAtLeastOnce = true
 			fmt.Println(encoded)
 			lastEncoded = encoded
+		} else if !didOutputAtLeastOnce && encoded == "" {
+			didOutputAtLeastOnce = true
+			fmt.Println(encoded)
 		}
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
