@@ -1,7 +1,7 @@
 FROM golang:1.14 AS builder
 
 WORKDIR /usr/src
-COPY go.mod go.sum main.go read.go wait.go /usr/src/
+COPY go.mod go.sum main.go io.go wait.go /usr/src/
 RUN go build -o monitor-write
 
 FROM scratch
