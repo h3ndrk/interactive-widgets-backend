@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -13,6 +15,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Expected 2 parameters, got", len(os.Args), "parameters:", os.Args)
 		return
 	}
+	pathToWatch := os.Args[1]
 	done := make(chan struct{}, 1)
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
@@ -20,7 +23,22 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Received signal:", <-signals)
 		close(done)
 	}()
-	pathToWatch := os.Args[1]
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func(wg *sync.WaitGroup) {
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			err := writeFileFromBase64(pathToWatch, scanner.Text())
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				break
+			}
+		}
+		if err := scanner.Err(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		wg.Done()
+	}(&wg)
 	lastEncoded := ""
 	didOutputAtLeastOnce := false
 main:
@@ -69,4 +87,5 @@ main:
 		default:
 		}
 	}
+	wg.Wait()
 }
