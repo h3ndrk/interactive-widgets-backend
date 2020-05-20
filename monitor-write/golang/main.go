@@ -6,7 +6,11 @@ import (
 
 func main() {
 	done := make(chan struct{})
-	if err := waitForEvent("/home/hendrik/Documents/containerized-playground/b/b/c/test.txt", done); err != nil {
+	pathToWatch := "/home/hendrik/Documents/containerized-playground/b/b/c/test.txt"
+	if err := readFileAndOutputBase64(pathToWatch); err != nil {
+		log.Fatal(err)
+	}
+	if err := waitForEvent(pathToWatch, done); err != nil {
 		log.Fatal(err)
 	}
 }
