@@ -10,7 +10,7 @@ import (
 
 func main() {
 	if len(os.Args) != 2 {
-		fmt.Fprintln(os.Stderr, "Expected 2 parameters, got", len(os.Args), os.Args)
+		fmt.Fprintln(os.Stderr, "Expected 2 parameters, got", len(os.Args), "parameters:", os.Args)
 		return
 	}
 	done := make(chan struct{}, 1)
