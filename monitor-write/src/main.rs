@@ -154,5 +154,6 @@ fn main() -> std::io::Result<()> {
             break;
         }
     }
+    // TODO: join thread
     Ok(())
 }
