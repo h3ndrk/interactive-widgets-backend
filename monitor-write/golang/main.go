@@ -13,7 +13,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Expected 2 parameters, got", len(os.Args), os.Args)
 		return
 	}
-	done := make(chan struct{})
+	done := make(chan struct{}, 1)
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
@@ -23,6 +23,7 @@ func main() {
 	pathToWatch := os.Args[1]
 	lastEncoded := ""
 	didOutputAtLeastOnce := false
+main:
 	for {
 		encoded, err := readFileToBase64(pathToWatch)
 		// encoded will be empty or containing the base64 string
@@ -43,9 +44,7 @@ func main() {
 				if !timer.Stop() {
 					<-timer.C
 				}
-			}
-			if _, ok := <-done; !ok {
-				break
+				break main
 			}
 			continue
 		}
@@ -58,14 +57,16 @@ func main() {
 				if !timer.Stop() {
 					<-timer.C
 				}
-			}
-			if _, ok := <-done; !ok {
-				break
+				break main
 			}
 			continue
 		}
-		if _, ok := <-done; !ok {
-			break
+		select {
+		case _, ok := <-done:
+			if !ok {
+				break main
+			}
+		default:
 		}
 	}
 }
