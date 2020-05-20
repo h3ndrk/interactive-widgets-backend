@@ -1,0 +1,12 @@
+FROM rust:1.43 AS builder
+
+WORKDIR /usr/src
+RUN rustup target add x86_64-unknown-linux-musl
+COPY Cargo.toml /usr/src/
+COPY src/ /usr/src/src/
+RUN cargo build --target x86_64-unknown-linux-musl --release
+
+FROM scratch
+
+COPY --from=builder /usr/src/target/x86_64-unknown-linux-musl/release/monitor-write /
+ENTRYPOINT [ "/monitor-write" ]
