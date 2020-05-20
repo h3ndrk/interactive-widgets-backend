@@ -2,8 +2,9 @@ const { spawn } = require('child_process');
 const ids = require('./ids');
 
 class DockerOperator {
-  constructor(pages) {
+  constructor(pages, monitorWriteDirectory) {
     this.pages = pages;
+    this.monitorWriteDirectory = monitorWriteDirectory;
     this.sendTextContents = () => { };
     this.sendImageData = () => { };
     this.sendButtonOutput = () => { };
@@ -15,6 +16,18 @@ class DockerOperator {
     // TODO: stop old containers, remove old containers/volumes
   }
   async buildImages() {
+    console.log(`Building monitor-write ${this.monitorWriteDirectory} as containerized-playground-monitor-write ...`);
+    await new Promise((resolve, reject) => {
+      const dockerProcess = spawn('docker', ['build', '--pull', '--tag', 'containerized-playground-monitor-write', this.monitorWriteDirectory]);
+      dockerProcess.stdout.pipe(process.stdout);
+      dockerProcess.stderr.pipe(process.stderr);
+      dockerProcess.on('close', code => {
+        if (code !== 0)
+          reject(code);
+        else
+          resolve();
+      });
+    });
     for (const url of Object.keys(this.pages)) {
       if (this.pages[url].isInteractive) {
         console.log(`Building page ${this.pages[url].dockerfilePath} as ${this.pages[url].imageName} ...`);

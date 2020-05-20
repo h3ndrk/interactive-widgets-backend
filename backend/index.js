@@ -5,14 +5,16 @@ const DockerOperator = require('./DockerOperator');
 
 async function main() {
   let pagesDirectory;
-  program.arguments('<pages>').action(pagesValue => {
+  let monitorWriteDirectory;
+  program.arguments('<pages> <monitor-write>').action((pagesValue, monitorWriteValue) => {
     pagesDirectory = pagesValue;
+    monitorWriteDirectory = monitorWriteValue;
   });
   program.parse(process.argv);
 
   const pages = await getPages(pagesDirectory);
 
-  const dockerOperator = new DockerOperator(pages);
+  const dockerOperator = new DockerOperator(pages, monitorWriteDirectory);
   await dockerOperator.cleanup();
   await dockerOperator.buildImages();
 
