@@ -1,5 +1,6 @@
 extern crate base64;
 extern crate inotify;
+extern crate signal_hook;
 
 fn parent_paths_from_child(child_path: &std::path::PathBuf) -> Vec<std::path::PathBuf> {
     let mut parent_paths: Vec<std::path::PathBuf> = vec![];
@@ -136,6 +137,8 @@ fn read_file(child_path: &std::path::PathBuf) {
 }
 
 fn main() -> std::io::Result<()> {
+    let signals =
+        signal_hook::iterator::Signals::new(&[signal_hook::SIGINT, signal_hook::SIGTERM])?;
     let watch_path = std::env::args()
         .nth(1)
         .expect("Failed to read watch path parameter");
@@ -145,7 +148,11 @@ fn main() -> std::io::Result<()> {
     } else {
         current_directory.join(&watch_path)
     };
-    // std::thread::spawn(move || read_file(child_path));
-    read_file(&child_path);
+    std::thread::spawn(move || read_file(&child_path));
+    for signal in signals.forever() {
+        if signal == signal_hook::SIGINT || signal == signal_hook::SIGTERM {
+            break;
+        }
+    }
     Ok(())
 }

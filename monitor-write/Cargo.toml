@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 base64 = "0.12"
 inotify = "0.8"
+signal-hook = "0.1.15"
