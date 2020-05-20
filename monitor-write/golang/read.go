@@ -4,16 +4,19 @@ import (
 	"encoding/base64"
 	"io"
 	"os"
+	"strings"
 )
 
-func readFileAndOutputBase64(pathToFile string) error {
-	file, err := os.Open("/home/hendrik/Documents/containerized-playground/b/b/c/test.txt")
+func readFileToBase64(pathToFile string) (string, error) {
+	file, err := os.Open(pathToFile)
 	if err != nil {
-		return err
+		return "", err
 	}
 
+	var encoded strings.Builder
+
 	if err := func() error {
-		encoder := base64.NewEncoder(base64.StdEncoding, os.Stdout)
+		encoder := base64.NewEncoder(base64.StdEncoding, &encoded)
 		defer encoder.Close()
 
 		_, err = io.Copy(encoder, file)
@@ -23,9 +26,8 @@ func readFileAndOutputBase64(pathToFile string) error {
 
 		return nil
 	}(); err != nil {
-		return nil
+		return "", nil
 	}
-	os.Stdout.WriteString("\n")
 
-	return nil
+	return encoded.String(), nil
 }
