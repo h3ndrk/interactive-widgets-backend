@@ -1,4 +1,4 @@
-module github.com/containerized-playground/monitor-write
+module github.com/h3ndrk/containerized-playground/monitor-write
 
 go 1.14
 
