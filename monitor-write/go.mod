@@ -1,4 +1,4 @@
-module github.com/containerized-playground/monitor-write/golang
+module github.com/containerized-playground/monitor-write
 
 go 1.14
 
