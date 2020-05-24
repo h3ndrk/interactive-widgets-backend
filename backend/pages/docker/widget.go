@@ -3,6 +3,7 @@ package docker
 import "github.com/h3ndrk/containerized-playground/backend/pages"
 
 type DockerWidget struct {
+	pageURL     pages.PageURL
 	widgetIndex pages.WidgetIndex
 }
 

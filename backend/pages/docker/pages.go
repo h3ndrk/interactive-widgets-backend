@@ -26,14 +26,19 @@ func NewDockerPages() pages.Pages {
 			"/": DockerPage{
 				widgets: []pages.Widget{
 					DockerWidget{
+						pageURL:     "/",
 						widgetIndex: 0,
 					}, DockerWidget{
+						pageURL:     "/",
 						widgetIndex: 1,
 					}, DockerWidget{
+						pageURL:     "/",
 						widgetIndex: 2,
 					}, DockerWidget{
+						pageURL:     "/",
 						widgetIndex: 3,
 					}, DockerWidget{
+						pageURL:     "/",
 						widgetIndex: 4,
 					},
 				},
@@ -42,14 +47,19 @@ func NewDockerPages() pages.Pages {
 			"/run": DockerPage{
 				widgets: []pages.Widget{
 					DockerWidget{
+						pageURL:     "/run",
 						widgetIndex: 0,
 					}, DockerWidget{
+						pageURL:     "/run",
 						widgetIndex: 1,
 					}, DockerWidget{
+						pageURL:     "/run",
 						widgetIndex: 2,
 					}, DockerWidget{
+						pageURL:     "/run",
 						widgetIndex: 3,
 					}, DockerWidget{
+						pageURL:     "/run",
 						widgetIndex: 4,
 					},
 				},
