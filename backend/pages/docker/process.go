@@ -147,3 +147,69 @@ func (l LongRunningProcess) Stop() {
 	close(l.running)
 	l.stopWaiting.Wait()
 }
+
+type ShortRunningProcess struct {
+	OutputData  <-chan Data
+	stopWaiting *sync.WaitGroup
+}
+
+func NewShortRunningProcess(arguments []string) (*ShortRunningProcess, error) {
+	if len(arguments) <= 1 {
+		return nil, errors.New("too few arguments")
+	}
+
+	outputData := make(chan Data)
+	var stopWaiting sync.WaitGroup
+
+	stopWaiting.Add(1)
+	process := exec.Command(arguments[0], arguments[1:]...)
+
+	stdoutPipe, err := process.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	stdoutScanner := bufio.NewScanner(stdoutPipe)
+
+	stderrPipe, err := process.StderrPipe()
+	if err != nil {
+		return nil, err
+	}
+	stderrScanner := bufio.NewScanner(stderrPipe)
+
+	err = process.Start()
+	if err != nil {
+		return nil, err
+	}
+
+	go func() {
+		for stdoutScanner.Scan() {
+			outputData <- Data{
+				Origin: StdoutStream,
+				Bytes:  stdoutScanner.Bytes(),
+			}
+		}
+	}()
+	go func() {
+		for stderrScanner.Scan() {
+			outputData <- Data{
+				Origin: StderrStream,
+				Bytes:  stderrScanner.Bytes(),
+			}
+		}
+	}()
+
+	go func(stopWaiting *sync.WaitGroup) {
+		process.Wait()
+		close(outputData)
+		stopWaiting.Done()
+	}(&stopWaiting)
+
+	return &ShortRunningProcess{
+		OutputData:  outputData,
+		stopWaiting: &stopWaiting,
+	}, nil
+}
+
+func (s ShortRunningProcess) Wait() {
+	s.stopWaiting.Wait()
+}
