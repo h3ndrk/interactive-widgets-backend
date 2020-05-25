@@ -11,12 +11,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-type LongRunningProcess struct {
-	running     chan struct{}
-	OutputData  <-chan Data
-	stopWaiting *sync.WaitGroup
-}
-
 type OutputStream string
 
 const StdoutStream OutputStream = "StdoutStream"
@@ -25,6 +19,12 @@ const StderrStream OutputStream = "StderrStream"
 type Data struct {
 	Origin OutputStream
 	Bytes  []byte
+}
+
+type LongRunningProcess struct {
+	running     chan struct{}
+	OutputData  <-chan Data
+	stopWaiting *sync.WaitGroup
 }
 
 func NewLongRunningProcess(arguments []string, stdin <-chan []byte) (*LongRunningProcess, error) {
