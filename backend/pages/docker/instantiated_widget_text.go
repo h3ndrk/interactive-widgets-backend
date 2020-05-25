@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type DockerInstantiatedWidgetText struct {
+type InstantiatedTextWidget struct {
 	Reader chan pages.Message
 	Writer chan pages.Message
 }
@@ -17,7 +17,7 @@ type TextMessage struct {
 	Bytes  []byte `json:"bytes"`
 }
 
-func NewDockerInstantiatedWidgetText(widgetID pages.WidgetID, file string) (*DockerInstantiatedWidgetText, error) {
+func NewInstantiatedTextWidget(widgetID pages.WidgetID, file string) (*InstantiatedTextWidget, error) {
 	pageURL, roomID, _, err := pages.PageURLAndRoomIDAndWidgetIndexFromWidgetID(widgetID)
 	if err != nil {
 		return nil, err
@@ -64,16 +64,16 @@ func NewDockerInstantiatedWidgetText(widgetID pages.WidgetID, file string) (*Doc
 		process.Stop()
 	}()
 
-	return &DockerInstantiatedWidgetText{
+	return &InstantiatedTextWidget{
 		Reader: reader,
 		Writer: writer,
 	}, nil
 }
 
-func (d DockerInstantiatedWidgetText) GetReader() <-chan pages.Message {
+func (d InstantiatedTextWidget) GetReader() <-chan pages.Message {
 	return d.Reader
 }
 
-func (d DockerInstantiatedWidgetText) GetWriter() chan<- pages.Message {
+func (d InstantiatedTextWidget) GetWriter() chan<- pages.Message {
 	return d.Writer
 }

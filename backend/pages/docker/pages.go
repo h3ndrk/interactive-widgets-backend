@@ -13,54 +13,64 @@ type ObservedInstantiatedPage struct {
 	removeObserverWriter chan chan<- pages.Message
 }
 
-type DockerPages struct {
+type Pages struct {
 	pages                          map[pages.PageURL]pages.Page
 	observedInstantiatedPagesMutex sync.Mutex
 	observedInstantiatedPages      map[pages.PageID]ObservedInstantiatedPage
 	observedInstantiatedPagesLocks PageLock
 }
 
-func NewDockerPages() pages.Pages {
-	return &DockerPages{
+func NewPages() pages.Pages {
+	return &Pages{
 		pages: map[pages.PageURL]pages.Page{
-			"/": DockerPage{
+			"/": Page{
 				widgets: []pages.Widget{
-					DockerWidget{
+					TextWidget{
 						pageURL:     "/",
 						widgetIndex: 0,
-					}, DockerWidget{
+						file:        "/data/test.txt",
+					}, TextWidget{
 						pageURL:     "/",
 						widgetIndex: 1,
-					}, DockerWidget{
+						file:        "/data/test.txt",
+					}, TextWidget{
 						pageURL:     "/",
 						widgetIndex: 2,
-					}, DockerWidget{
+						file:        "/data/test.txt",
+					}, TextWidget{
 						pageURL:     "/",
 						widgetIndex: 3,
-					}, DockerWidget{
+						file:        "/data/test.txt",
+					}, TextWidget{
 						pageURL:     "/",
 						widgetIndex: 4,
+						file:        "/data/test.txt",
 					},
 				},
 				pageURL: "/",
 			},
-			"/run": DockerPage{
+			"/run": Page{
 				widgets: []pages.Widget{
-					DockerWidget{
+					TextWidget{
 						pageURL:     "/run",
 						widgetIndex: 0,
-					}, DockerWidget{
+						file:        "/data/test.txt",
+					}, TextWidget{
 						pageURL:     "/run",
 						widgetIndex: 1,
-					}, DockerWidget{
+						file:        "/data/test.txt",
+					}, TextWidget{
 						pageURL:     "/run",
 						widgetIndex: 2,
-					}, DockerWidget{
+						file:        "/data/test.txt",
+					}, TextWidget{
 						pageURL:     "/run",
 						widgetIndex: 3,
-					}, DockerWidget{
+						file:        "/data/test.txt",
+					}, TextWidget{
 						pageURL:     "/run",
 						widgetIndex: 4,
+						file:        "/data/test.txt",
 					},
 				},
 				pageURL: "/run",
@@ -68,12 +78,12 @@ func NewDockerPages() pages.Pages {
 		},
 		observedInstantiatedPages: map[pages.PageID]ObservedInstantiatedPage{},
 		observedInstantiatedPagesLocks: PageLock{
-			pageLocks: map[pages.PageID]sync.Mutex{},
+			pageLocks: map[pages.PageID]*sync.Mutex{},
 		},
 	}
 }
 
-func (d DockerPages) Prepare() error {
+func (d Pages) Prepare() error {
 	for pageID, page := range d.pages {
 		if err := page.Prepare(); err != nil {
 			return errors.Wrapf(err, "Failed to prepare page %s", pageID)
@@ -82,7 +92,7 @@ func (d DockerPages) Prepare() error {
 	return nil
 }
 
-func (d DockerPages) Cleanup() error {
+func (d Pages) Cleanup() error {
 	for pageID, page := range d.pages {
 		if err := page.Cleanup(); err != nil {
 			return errors.Wrapf(err, "Failed to cleanup page %s", pageID)
@@ -91,7 +101,7 @@ func (d DockerPages) Cleanup() error {
 	return nil
 }
 
-func (d *DockerPages) Observe(pageID pages.PageID, observer pages.ReadWriter) error {
+func (d *Pages) Observe(pageID pages.PageID, observer pages.ReadWriter) error {
 	pageURL, _, err := pages.PageURLAndRoomIDFromPageID(pageID)
 	if err != nil {
 		return nil
@@ -182,12 +192,12 @@ func (d *DockerPages) Observe(pageID pages.PageID, observer pages.ReadWriter) er
 	return nil
 }
 
-func (d DockerPages) MarshalPages() ([]byte, error) {
+func (d Pages) MarshalPages() ([]byte, error) {
 	// TODO
 	return nil, nil
 }
 
-func (d DockerPages) MarshalPage(pageURL pages.PageURL) ([]byte, error) {
+func (d Pages) MarshalPage(pageURL pages.PageURL) ([]byte, error) {
 	// TODO
 	return nil, nil
 }
