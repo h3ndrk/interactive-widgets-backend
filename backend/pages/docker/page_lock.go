@@ -8,14 +8,14 @@ import (
 
 type PageLock struct {
 	mutex     sync.Mutex
-	pageLocks map[pages.PageID]sync.Mutex
+	pageLocks map[pages.PageID]*sync.Mutex
 }
 
 func (i *PageLock) Lock(pageID pages.PageID) {
 	i.mutex.Lock()
 	closingMutex, ok := i.pageLocks[pageID]
 	if !ok {
-		closingMutex = sync.Mutex{}
+		closingMutex = &sync.Mutex{}
 		i.pageLocks[pageID] = closingMutex
 	}
 	i.mutex.Unlock()
