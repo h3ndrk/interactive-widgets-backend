@@ -1,12 +1,8 @@
 package pages
 
-import (
-	"encoding/json"
-)
-
 type Message struct {
-	widgetID WidgetID
-	data     json.Marshaler
+	WidgetID WidgetID
+	Data     interface{}
 }
 
 type ReadWriter struct {
