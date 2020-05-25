@@ -1,6 +1,8 @@
 package docker
 
 import (
+	"bytes"
+	"fmt"
 	"sync"
 
 	"github.com/h3ndrk/containerized-playground/backend/pages"
@@ -83,47 +85,53 @@ func NewPages() pages.Pages {
 	}
 }
 
-func (d Pages) Prepare() error {
-	for pageID, page := range d.pages {
+func (p Pages) Prepare() error {
+	for pageURL, page := range p.pages {
 		if err := page.Prepare(); err != nil {
-			return errors.Wrapf(err, "Failed to prepare page %s", pageID)
+			return errors.Wrapf(err, "Failed to prepare page %s", pageURL)
 		}
 	}
+
 	return nil
 }
 
-func (d Pages) Cleanup() error {
-	for pageID, page := range d.pages {
+func (p Pages) Cleanup() error {
+	for pageURL, page := range p.pages {
 		if err := page.Cleanup(); err != nil {
-			return errors.Wrapf(err, "Failed to cleanup page %s", pageID)
+			return errors.Wrapf(err, "Failed to cleanup page %s", pageURL)
 		}
 	}
+
 	return nil
 }
 
-func (d *Pages) Observe(pageID pages.PageID, observer pages.ReadWriter) error {
+func (p *Pages) Observe(pageID pages.PageID, observer pages.ReadWriter) error {
 	pageURL, _, err := pages.PageURLAndRoomIDFromPageID(pageID)
 	if err != nil {
 		return nil
 	}
-	page, ok := d.pages[pageURL]
+	page, ok := p.pages[pageURL]
 	if !ok {
-		return errors.Errorf("pages.Page URL \"%s\" not existing", pageURL)
+		return errors.Errorf("Page URL \"%s\" not existing", pageURL)
 	}
+
 	// first, blockingly lock this page (this prevents concurrent instantiation/teardown of pages; once teardown is in progress, the lock is kept as long as teardown is in progress)
-	d.observedInstantiatedPagesLocks.Lock(pageID)
-	defer d.observedInstantiatedPagesLocks.Unlock(pageID)
+	p.observedInstantiatedPagesLocks.Lock(pageID)
+	defer p.observedInstantiatedPagesLocks.Unlock(pageID)
+
 	// second, lock the whole map of instantiated pages
-	d.observedInstantiatedPagesMutex.Lock()
-	defer d.observedInstantiatedPagesMutex.Unlock()
+	p.observedInstantiatedPagesMutex.Lock()
+	defer p.observedInstantiatedPagesMutex.Unlock()
+
 	// at this point: no teardown of this page and no other modification of the map of instantiated pages is in progress
 	// we can now modify the map of instantiated pages and can safely add observers to the current page (will be added to an instantiated page, not to a page that is currently in teardown)
-	instantiatedPage, ok := d.observedInstantiatedPages[pageID]
+	instantiatedPage, ok := p.observedInstantiatedPages[pageID]
 	if !ok {
 		newInstantiatedPage, err := page.Instantiate(pageID)
 		if err != nil {
 			return nil
 		}
+
 		addObserverWriter := make(chan chan<- pages.Message)
 		removeObserverWriter := make(chan chan<- pages.Message)
 		instantiatedPage = ObservedInstantiatedPage{
@@ -131,7 +139,8 @@ func (d *Pages) Observe(pageID pages.PageID, observer pages.ReadWriter) error {
 			addObserverWriter:    addObserverWriter,
 			removeObserverWriter: removeObserverWriter,
 		}
-		d.observedInstantiatedPages[pageID] = instantiatedPage
+		p.observedInstantiatedPages[pageID] = instantiatedPage
+
 		// the following goroutine manages all messages and channels that address sending from an instantiated page to all connected observers
 		go func() {
 			var writers []chan<- pages.Message
@@ -139,19 +148,23 @@ func (d *Pages) Observe(pageID pages.PageID, observer pages.ReadWriter) error {
 				select {
 				case message, ok := <-instantiatedPage.instantiatedPage.GetReader():
 					if !ok {
-						defer d.observedInstantiatedPagesLocks.Unlock(pageID)
+						defer p.observedInstantiatedPagesLocks.Unlock(pageID)
+
 						// page closed channel: remove page, disconnect all observer writers
 						// this lock will not introduce any deadlock, since we currently have the lock of this page
-						d.observedInstantiatedPagesMutex.Lock()
-						defer d.observedInstantiatedPagesMutex.Unlock()
+						p.observedInstantiatedPagesMutex.Lock()
+						defer p.observedInstantiatedPagesMutex.Unlock()
+
 						// the reader of this page should only close if there are no observer writers left
 						if len(writers) > 0 {
 							panic("Bug: An instantiated page which is currently in teardown cannot have any active observer writers.")
 						}
+
 						// remove page
-						delete(d.observedInstantiatedPages, pageID)
+						delete(p.observedInstantiatedPages, pageID)
 						return
 					}
+
 					for _, writer := range writers {
 						writer <- message
 					}
@@ -167,37 +180,56 @@ func (d *Pages) Observe(pageID pages.PageID, observer pages.ReadWriter) error {
 						}
 					}
 					writers = writers[:n]
+
 					// close writer
 					close(writer)
+
 					// if last writer closed, close page (keep page lock locked, will be unlocked once the page reader closes), else unlock page lock
 					if len(writers) == 0 {
 						close(instantiatedPage.instantiatedPage.GetWriter())
 					} else {
-						d.observedInstantiatedPagesLocks.Unlock(pageID)
+						p.observedInstantiatedPagesLocks.Unlock(pageID)
 					}
 				}
 			}
 		}()
 	}
+
 	instantiatedPage.addObserverWriter <- observer.Writer
+
 	go func() {
 		// read from observer
 		for message := range observer.Reader {
 			instantiatedPage.instantiatedPage.GetWriter() <- message
 		}
+
 		// observer reader closed, start locking this page and also remove this observer writer
-		d.observedInstantiatedPagesLocks.Lock(pageID)
+		p.observedInstantiatedPagesLocks.Lock(pageID)
 		instantiatedPage.removeObserverWriter <- observer.Writer
 	}()
+
 	return nil
 }
 
-func (d Pages) MarshalPages() ([]byte, error) {
-	// TODO
-	return nil, nil
+func (p Pages) MarshalPages() ([]byte, error) {
+	var pages [][]byte
+	for pageURL, page := range p.pages {
+		page, err := page.MarshalPage()
+		if err != nil {
+			return nil, errors.Wrapf(err, "Failed to marshal page %s", pageURL)
+		}
+
+		pages = append(pages, page)
+	}
+
+	return []byte(fmt.Sprintf("{\"pages\":[%s]}", bytes.Join(pages, []byte(",")))), nil
 }
 
-func (d Pages) MarshalPage(pageURL pages.PageURL) ([]byte, error) {
-	// TODO
-	return nil, nil
+func (p Pages) MarshalPage(pageURL pages.PageURL) ([]byte, error) {
+	page, ok := p.pages[pageURL]
+	if !ok {
+		return nil, errors.Errorf("Page URL \"%s\" not existing", pageURL)
+	}
+
+	return page.MarshalWidgets()
 }
