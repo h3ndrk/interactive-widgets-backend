@@ -8,8 +8,8 @@ import (
 )
 
 type InstantiatedTextWidget struct {
-	Reader chan pages.Message
-	Writer chan pages.Message
+	reader chan pages.Message
+	writer chan pages.Message
 }
 
 type TextMessage struct {
@@ -60,20 +60,21 @@ func NewInstantiatedTextWidget(widgetID pages.WidgetID, file string) (*Instantia
 		for range writer {
 			// discard
 		}
+
 		// writer closed, stop process
 		process.Stop()
 	}()
 
 	return &InstantiatedTextWidget{
-		Reader: reader,
-		Writer: writer,
+		reader: reader,
+		writer: writer,
 	}, nil
 }
 
 func (d InstantiatedTextWidget) GetReader() <-chan pages.Message {
-	return d.Reader
+	return d.reader
 }
 
 func (d InstantiatedTextWidget) GetWriter() chan<- pages.Message {
-	return d.Writer
+	return d.writer
 }

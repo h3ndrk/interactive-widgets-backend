@@ -36,7 +36,7 @@ func (p Page) Cleanup() error {
 }
 
 func (p Page) Instantiate(pageID pages.PageID) (pages.InstantiatedPage, error) {
-	return nil, nil
+	return NewInstantiatedPage(pageID, p.widgets)
 }
 
 func (p Page) MarshalPage() ([]byte, error) {
