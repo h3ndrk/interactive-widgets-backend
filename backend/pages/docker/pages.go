@@ -85,7 +85,7 @@ func NewPages() pages.Pages {
 	}
 }
 
-func (p Pages) Prepare() error {
+func (p *Pages) Prepare() error {
 	for pageURL, page := range p.pages {
 		if err := page.Prepare(); err != nil {
 			return errors.Wrapf(err, "Failed to prepare page %s", pageURL)
@@ -95,7 +95,7 @@ func (p Pages) Prepare() error {
 	return nil
 }
 
-func (p Pages) Cleanup() error {
+func (p *Pages) Cleanup() error {
 	for pageURL, page := range p.pages {
 		if err := page.Cleanup(); err != nil {
 			return errors.Wrapf(err, "Failed to cleanup page %s", pageURL)
@@ -174,7 +174,7 @@ func (p *Pages) Observe(pageID pages.PageID, observer pages.ReadWriter) error {
 					// remove writer
 					n := 0
 					for _, w := range writers {
-						if w == writer {
+						if w != writer {
 							writers[n] = w
 							n++
 						}
@@ -211,7 +211,7 @@ func (p *Pages) Observe(pageID pages.PageID, observer pages.ReadWriter) error {
 	return nil
 }
 
-func (p Pages) MarshalPages() ([]byte, error) {
+func (p *Pages) MarshalPages() ([]byte, error) {
 	var pages [][]byte
 	for pageURL, page := range p.pages {
 		page, err := page.MarshalPage()
@@ -225,7 +225,7 @@ func (p Pages) MarshalPages() ([]byte, error) {
 	return []byte(fmt.Sprintf("{\"pages\":[%s]}", bytes.Join(pages, []byte(",")))), nil
 }
 
-func (p Pages) MarshalPage(pageURL pages.PageURL) ([]byte, error) {
+func (p *Pages) MarshalPage(pageURL pages.PageURL) ([]byte, error) {
 	page, ok := p.pages[pageURL]
 	if !ok {
 		return nil, errors.Errorf("Page URL \"%s\" not existing", pageURL)
