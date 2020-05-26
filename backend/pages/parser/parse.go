@@ -272,10 +272,24 @@ func fillGaps(contents []byte, widgets []Widget) []Widget {
 	return widgetsWithoutGaps
 }
 
-func ParsePage(pagePath string) ([]Widget, error) {
+func extractImagePaths(block ast.Node) []string {
+	var imagePaths []string
+
+	if block.Kind() == ast.KindImage {
+		imagePaths = append(imagePaths, string(block.(*ast.Image).Destination))
+	}
+
+	for child := block.FirstChild(); child != nil; child = child.NextSibling() {
+		imagePaths = append(imagePaths, extractImagePaths(child)...)
+	}
+
+	return imagePaths
+}
+
+func ParsePage(pagePath string) ([]Widget, []string, error) {
 	contents, err := ioutil.ReadFile(pagePath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to read page %s", pagePath)
+		return nil, nil, errors.Wrapf(err, "Failed to read page %s", pagePath)
 	}
 
 	md := goldmark.New()
@@ -283,14 +297,17 @@ func ParsePage(pagePath string) ([]Widget, error) {
 	document := md.Parser().Parse(reader)
 
 	var widgets []Widget
+	var imagePaths []string
 	for block := document.FirstChild(); block != nil; block = block.NextSibling() {
 		widget, err := processBlock(contents, block)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if widget != nil {
 			widgets = append(widgets, widget)
 		}
+
+		imagePaths = append(imagePaths, extractImagePaths(block)...)
 	}
 
 	if len(widgets) == 0 {
@@ -298,8 +315,8 @@ func ParsePage(pagePath string) ([]Widget, error) {
 			MarkdownWidget{
 				Contents: string(contents),
 			},
-		}, nil
+		}, imagePaths, nil
 	}
 
-	return fillGaps(contents, widgets), nil
+	return fillGaps(contents, widgets), imagePaths, nil
 }
