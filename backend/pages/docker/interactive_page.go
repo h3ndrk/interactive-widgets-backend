@@ -9,14 +9,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Page struct {
+type InteractivePage struct {
 	widgets []pages.Widget
 
 	pageURL pages.PageURL
 }
 
-func (p Page) Prepare() error {
-	for widgetIndex, widget := range p.widgets {
+func (i InteractivePage) Prepare() error {
+	for widgetIndex, widget := range i.widgets {
 		if err := widget.Prepare(); err != nil {
 			return errors.Wrapf(err, "Failed to prepare widget %d", widgetIndex)
 		}
@@ -25,8 +25,8 @@ func (p Page) Prepare() error {
 	return nil
 }
 
-func (p Page) Cleanup() error {
-	for widgetIndex, widget := range p.widgets {
+func (i InteractivePage) Cleanup() error {
+	for widgetIndex, widget := range i.widgets {
 		if err := widget.Cleanup(); err != nil {
 			return errors.Wrapf(err, "Failed to cleanup widget %d", widgetIndex)
 		}
@@ -35,22 +35,22 @@ func (p Page) Cleanup() error {
 	return nil
 }
 
-func (p Page) Instantiate(pageID pages.PageID) (pages.InstantiatedPage, error) {
-	return NewInstantiatedPage(pageID, p.widgets)
+func (i InteractivePage) Instantiate(pageID pages.PageID) (pages.InstantiatedPage, error) {
+	return NewInstantiatedPage(pageID, i.widgets)
 }
 
-func (p Page) MarshalPage() ([]byte, error) {
-	return json.Marshal(p.pageURL)
+func (i InteractivePage) MarshalPage() ([]byte, error) {
+	return json.Marshal(i.pageURL)
 }
 
-func (p Page) MarshalWidgets() ([]byte, error) {
-	pageURL, err := json.Marshal(p.pageURL)
+func (i InteractivePage) MarshalWidgets() ([]byte, error) {
+	pageURL, err := json.Marshal(i.pageURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to marshal page URL")
 	}
 
 	var widgets [][]byte
-	for widgetIndex, widget := range p.widgets {
+	for widgetIndex, widget := range i.widgets {
 		widget, err := widget.MarshalWidget()
 		if err != nil {
 			return nil, errors.Wrapf(err, "Failed to marshal widget %d", widgetIndex)

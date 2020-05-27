@@ -25,7 +25,7 @@ type Pages struct {
 func NewPages() pages.Pages {
 	return &Pages{
 		pages: map[pages.PageURL]pages.Page{
-			"/": Page{
+			"/": InteractivePage{
 				widgets: []pages.Widget{
 					TextWidget{
 						pageURL:     "/",
@@ -51,7 +51,7 @@ func NewPages() pages.Pages {
 				},
 				pageURL: "/",
 			},
-			"/run": Page{
+			"/run": InteractivePage{
 				widgets: []pages.Widget{
 					TextWidget{
 						pageURL:     "/run",
