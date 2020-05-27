@@ -43,7 +43,7 @@ func (b ButtonWidget) MarshalWidget() ([]byte, error) {
 		Label   string `json:"label"`
 		Command string `json:"command"`
 	}{
-		"Button",
+		"button",
 		b.label,
 		b.command,
 	})

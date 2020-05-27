@@ -2,13 +2,15 @@ package docker
 
 import (
 	"bytes"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 
 	"github.com/h3ndrk/containerized-playground/backend/pages"
 	"github.com/pkg/errors"
 )
 
-type InstantiatedTextWidget struct {
+type InstantiatedEditorWidget struct {
 	reader chan pages.OutgoingMessage
 	writer chan pages.IncomingMessage
 
@@ -16,12 +18,16 @@ type InstantiatedTextWidget struct {
 	errors   [][]byte
 }
 
-type TextContentsMessage struct {
+type EditorInputMessage struct {
+	Contents []byte `json:"contents"`
+}
+
+type EditorContentsMessage struct {
 	Contents []byte   `json:"contents"`
 	Errors   [][]byte `json:"errors"`
 }
 
-func NewInstantiatedTextWidget(widgetID pages.WidgetID, file string) (*InstantiatedTextWidget, error) {
+func NewInstantiatedEditorWidget(widgetID pages.WidgetID, file string) (*InstantiatedEditorWidget, error) {
 	pageURL, roomID, _, err := pages.PageURLAndRoomIDAndWidgetIndexFromWidgetID(widgetID)
 	if err != nil {
 		return nil, err
@@ -33,12 +39,13 @@ func NewInstantiatedTextWidget(widgetID pages.WidgetID, file string) (*Instantia
 	volumeName := fmt.Sprintf("containerized-playground-%s", pages.EncodePageID(pageID))
 	containerName := fmt.Sprintf("containerized-playground-%s", pages.EncodeWidgetID(widgetID))
 
-	process, err := NewLongRunningProcess([]string{"docker", "run", "--rm", "--name", containerName, "--network=none", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), "containerized-playground-monitor-write", file}, nil)
+	stdin := make(chan []byte)
+	process, err := NewLongRunningProcess([]string{"docker", "run", "--rm", "--name", containerName, "--network=none", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), "containerized-playground-monitor-write", file}, stdin)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to run container for widget %s", widgetID)
 	}
 
-	widget := &InstantiatedTextWidget{
+	widget := &InstantiatedEditorWidget{
 		reader: make(chan pages.OutgoingMessage),
 		writer: make(chan pages.IncomingMessage),
 	}
@@ -50,7 +57,7 @@ func NewInstantiatedTextWidget(widgetID pages.WidgetID, file string) (*Instantia
 					widget.contents = data.Bytes
 					widget.reader <- pages.OutgoingMessage{
 						WidgetID: widgetID,
-						Data: TextContentsMessage{
+						Data: EditorContentsMessage{
 							Contents: widget.contents,
 							Errors:   widget.errors,
 						},
@@ -60,7 +67,7 @@ func NewInstantiatedTextWidget(widgetID pages.WidgetID, file string) (*Instantia
 				widget.errors = append(widget.errors[:4], data.Bytes)
 				widget.reader <- pages.OutgoingMessage{
 					WidgetID: widgetID,
-					Data: TextContentsMessage{
+					Data: EditorContentsMessage{
 						Contents: widget.contents,
 						Errors:   widget.errors,
 					},
@@ -72,21 +79,27 @@ func NewInstantiatedTextWidget(widgetID pages.WidgetID, file string) (*Instantia
 		close(widget.reader)
 	}()
 	go func() {
-		for range widget.writer {
-			// discard
+		for message := range widget.writer {
+			var inputMessage EditorInputMessage
+			if err := json.Unmarshal(message.Data, &inputMessage); err == nil {
+				stdin <- []byte(base64.StdEncoding.EncodeToString(inputMessage.Contents))
+
+				continue
+			}
 		}
 
-		// writer closed, stop process
+		// writer closed, close stdin and stop process
+		close(stdin)
 		process.Stop()
 	}()
 
 	return widget, nil
 }
 
-func (i InstantiatedTextWidget) GetReader() <-chan pages.OutgoingMessage {
+func (i InstantiatedEditorWidget) GetReader() <-chan pages.OutgoingMessage {
 	return i.reader
 }
 
-func (i InstantiatedTextWidget) GetWriter() chan<- pages.IncomingMessage {
+func (i InstantiatedEditorWidget) GetWriter() chan<- pages.IncomingMessage {
 	return i.writer
 }

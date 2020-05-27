@@ -54,7 +54,7 @@ func NewInstantiatedButtonWidget(widgetID pages.WidgetID, command string) (*Inst
 					widget.running = true
 
 					go func() {
-						process, err := NewShortRunningProcess([]string{"docker", "run", "--rm", "--name", containerName, "--network=none", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), imageName, "bash", "-c", command})
+						process, err := NewShortRunningProcess([]string{"docker", "run", "--rm", "--name", containerName, "--network=none", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), imageName, "/bin/bash", "-c", command})
 						if err != nil {
 							log.Print(errors.Wrapf(err, "Failed to execute button click command for widget %s", widgetID))
 							return

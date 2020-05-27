@@ -7,40 +7,40 @@ import (
 	"github.com/h3ndrk/containerized-playground/backend/pages/parser"
 )
 
-type ImageWidget struct {
+type EditorWidget struct {
 	pageURL     pages.PageURL
 	widgetIndex pages.WidgetIndex
 
 	file string
 }
 
-func NewImageWidget(pageURL pages.PageURL, widgetIndex pages.WidgetIndex, widget parser.ImageWidget) pages.Widget {
-	return &ImageWidget{
+func NewEditorWidget(pageURL pages.PageURL, widgetIndex pages.WidgetIndex, widget parser.EditorWidget) pages.Widget {
+	return &EditorWidget{
 		pageURL:     pageURL,
 		widgetIndex: widgetIndex,
 		file:        widget.File,
 	}
 }
 
-func (i ImageWidget) Prepare() error {
+func (t EditorWidget) Prepare() error {
 	// TODO: build monitor-write image
 	return nil
 }
 
-func (i ImageWidget) Cleanup() error {
+func (t EditorWidget) Cleanup() error {
 	return nil
 }
 
-func (i ImageWidget) Instantiate(widgetID pages.WidgetID) (pages.InstantiatedWidget, error) {
-	return NewInstantiatedImageWidget(widgetID, i.file)
+func (t EditorWidget) Instantiate(widgetID pages.WidgetID) (pages.InstantiatedWidget, error) {
+	return NewInstantiatedEditorWidget(widgetID, t.file)
 }
 
-func (i ImageWidget) MarshalWidget() ([]byte, error) {
+func (t EditorWidget) MarshalWidget() ([]byte, error) {
 	return json.Marshal(struct {
 		Type string `json:"type"`
 		File string `json:"file"`
 	}{
-		"image",
-		i.file,
+		"editor",
+		t.file,
 	})
 }

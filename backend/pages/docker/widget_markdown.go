@@ -39,7 +39,7 @@ func (m MarkdownWidget) MarshalWidget() ([]byte, error) {
 		Type string `json:"type"`
 		File string `json:"contents"`
 	}{
-		"text",
+		"markdown",
 		m.contents,
 	})
 }

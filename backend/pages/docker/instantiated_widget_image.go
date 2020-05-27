@@ -16,7 +16,7 @@ type InstantiatedImageWidget struct {
 	errors   [][]byte
 }
 
-type ImageMessage struct {
+type ImageContentsMessage struct {
 	Contents []byte   `json:"contents"`
 	Errors   [][]byte `json:"errors"`
 }
@@ -50,7 +50,7 @@ func NewInstantiatedImageWidget(widgetID pages.WidgetID, file string) (*Instanti
 					widget.contents = data.Bytes
 					widget.reader <- pages.OutgoingMessage{
 						WidgetID: widgetID,
-						Data: ImageMessage{
+						Data: ImageContentsMessage{
 							Contents: widget.contents,
 							Errors:   widget.errors,
 						},
@@ -60,7 +60,7 @@ func NewInstantiatedImageWidget(widgetID pages.WidgetID, file string) (*Instanti
 				widget.errors = append(widget.errors[:4], data.Bytes)
 				widget.reader <- pages.OutgoingMessage{
 					WidgetID: widgetID,
-					Data: ImageMessage{
+					Data: ImageContentsMessage{
 						Contents: widget.contents,
 						Errors:   widget.errors,
 					},
