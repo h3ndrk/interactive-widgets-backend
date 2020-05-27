@@ -38,12 +38,14 @@ func NewPages(readPages []parser.Page) (pages.Pages, error) {
 			if err != nil {
 				return nil, errors.Wrapf(err, "Failed to create interactive page for URL %s", readPage.URL)
 			}
+
 			newPages.pages[readPage.URL] = interactivePage
 		} else {
 			staticPage, err := NewStaticPage(readPage.URL, readPage)
 			if err != nil {
 				return nil, errors.Wrapf(err, "Failed to create static page for URL %s", readPage.URL)
 			}
+
 			newPages.pages[readPage.URL] = staticPage
 		}
 	}
