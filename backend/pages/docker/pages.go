@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/h3ndrk/containerized-playground/backend/pages"
+	"github.com/h3ndrk/containerized-playground/backend/pages/parser"
 	"github.com/pkg/errors"
 )
 
@@ -22,67 +23,32 @@ type Pages struct {
 	observedInstantiatedPagesLocks PageLock
 }
 
-func NewPages() pages.Pages {
-	return &Pages{
-		pages: map[pages.PageURL]pages.Page{
-			"/": InteractivePage{
-				widgets: []pages.Widget{
-					TextWidget{
-						pageURL:     "/",
-						widgetIndex: 0,
-						file:        "/data/test.txt",
-					}, TextWidget{
-						pageURL:     "/",
-						widgetIndex: 1,
-						file:        "/data/test.txt",
-					}, TextWidget{
-						pageURL:     "/",
-						widgetIndex: 2,
-						file:        "/data/test.txt",
-					}, TextWidget{
-						pageURL:     "/",
-						widgetIndex: 3,
-						file:        "/data/test.txt",
-					}, TextWidget{
-						pageURL:     "/",
-						widgetIndex: 4,
-						file:        "/data/test.txt",
-					},
-				},
-				pageURL: "/",
-			},
-			"/run": InteractivePage{
-				widgets: []pages.Widget{
-					TextWidget{
-						pageURL:     "/run",
-						widgetIndex: 0,
-						file:        "/data/test.txt",
-					}, TextWidget{
-						pageURL:     "/run",
-						widgetIndex: 1,
-						file:        "/data/test.txt",
-					}, TextWidget{
-						pageURL:     "/run",
-						widgetIndex: 2,
-						file:        "/data/test.txt",
-					}, TextWidget{
-						pageURL:     "/run",
-						widgetIndex: 3,
-						file:        "/data/test.txt",
-					}, TextWidget{
-						pageURL:     "/run",
-						widgetIndex: 4,
-						file:        "/data/test.txt",
-					},
-				},
-				pageURL: "/run",
-			},
-		},
+func NewPages(readPages []parser.Page) (pages.Pages, error) {
+	newPages := &Pages{
+		pages:                     map[pages.PageURL]pages.Page{},
 		observedInstantiatedPages: map[pages.PageID]ObservedInstantiatedPage{},
 		observedInstantiatedPagesLocks: PageLock{
 			pageLocks: map[pages.PageID]*sync.Mutex{},
 		},
 	}
+
+	for _, readPage := range readPages {
+		if readPage.IsInteractive {
+			interactivePage, err := NewInteractivePage(readPage.URL, readPage)
+			if err != nil {
+				return nil, errors.Wrapf(err, "Failed to create interactive page for URL %s", readPage.URL)
+			}
+			newPages.pages[readPage.URL] = interactivePage
+		} else {
+			staticPage, err := NewStaticPage(readPage.URL, readPage)
+			if err != nil {
+				return nil, errors.Wrapf(err, "Failed to create static page for URL %s", readPage.URL)
+			}
+			newPages.pages[readPage.URL] = staticPage
+		}
+	}
+
+	return newPages, nil
 }
 
 func (p *Pages) Prepare() error {
@@ -113,6 +79,9 @@ func (p *Pages) Observe(pageID pages.PageID, observer pages.ReadWriter) error {
 	page, ok := p.pages[pageURL]
 	if !ok {
 		return errors.Errorf("Page URL \"%s\" not existing", pageURL)
+	}
+	if _, ok := page.(InteractivePage); !ok {
+		return errors.Errorf("Page with URL \"%s\" not interactive", pageURL)
 	}
 
 	// first, blockingly lock this page (this prevents concurrent instantiation/teardown of pages; once teardown is in progress, the lock is kept as long as teardown is in progress)

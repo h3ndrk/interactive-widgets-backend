@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/h3ndrk/containerized-playground/backend/pages"
+	"github.com/h3ndrk/containerized-playground/backend/pages/parser"
 )
 
 type TextWidget struct {
@@ -11,6 +12,14 @@ type TextWidget struct {
 	widgetIndex pages.WidgetIndex
 
 	file string
+}
+
+func NewTextWidget(pageURL pages.PageURL, widgetIndex pages.WidgetIndex, widget parser.TextWidget) pages.Widget {
+	return &TextWidget{
+		pageURL:     pageURL,
+		widgetIndex: widgetIndex,
+		file:        widget.File,
+	}
 }
 
 func (d TextWidget) Prepare() error {
