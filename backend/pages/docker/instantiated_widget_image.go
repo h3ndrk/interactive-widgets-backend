@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/h3ndrk/containerized-playground/backend/pages"
@@ -10,11 +11,14 @@ import (
 type InstantiatedImageWidget struct {
 	reader chan pages.Message
 	writer chan pages.Message
+
+	contents []byte
+	errors   [][]byte
 }
 
 type ImageMessage struct {
-	Origin string `json:"origin"`
-	Bytes  []byte `json:"bytes"`
+	Contents []byte   `json:"contents"`
+	Errors   [][]byte `json:"errors"`
 }
 
 func NewInstantiatedImageWidget(widgetID pages.WidgetID, file string) (*InstantiatedImageWidget, error) {
@@ -34,30 +38,41 @@ func NewInstantiatedImageWidget(widgetID pages.WidgetID, file string) (*Instanti
 		return nil, errors.Wrapf(err, "Failed to run container for widget %s", widgetID)
 	}
 
-	reader := make(chan pages.Message)
-	writer := make(chan pages.Message)
+	widget := &InstantiatedImageWidget{
+		reader: make(chan pages.Message),
+		writer: make(chan pages.Message),
+	}
 	go func() {
 		for data := range process.OutputData {
-			var origin string
 			switch data.Origin {
 			case StdoutStream:
-				origin = "stdout"
+				if bytes.Compare(data.Bytes, widget.contents) != 0 {
+					widget.contents = data.Bytes
+					widget.reader <- pages.Message{
+						WidgetID: widgetID,
+						Data: ImageMessage{
+							Contents: widget.contents,
+							Errors:   widget.errors,
+						},
+					}
+				}
 			case StderrStream:
-				origin = "stderr"
-			}
-			reader <- pages.Message{
-				WidgetID: widgetID,
-				Data: ImageMessage{
-					Origin: origin,
-					Bytes:  data.Bytes,
-				},
+				widget.errors = append(widget.errors[:4], data.Bytes)
+				widget.reader <- pages.Message{
+					WidgetID: widgetID,
+					Data: ImageMessage{
+						Contents: widget.contents,
+						Errors:   widget.errors,
+					},
+				}
 			}
 		}
+
 		// process stopped, close reader
-		close(reader)
+		close(widget.reader)
 	}()
 	go func() {
-		for range writer {
+		for range widget.writer {
 			// discard
 		}
 
@@ -65,10 +80,7 @@ func NewInstantiatedImageWidget(widgetID pages.WidgetID, file string) (*Instanti
 		process.Stop()
 	}()
 
-	return &InstantiatedImageWidget{
-		reader: reader,
-		writer: writer,
-	}, nil
+	return widget, nil
 }
 
 func (d InstantiatedImageWidget) GetReader() <-chan pages.Message {
