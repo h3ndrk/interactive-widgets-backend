@@ -12,8 +12,8 @@ import (
 
 type ObservedInstantiatedPage struct {
 	instantiatedPage     pages.InstantiatedPage
-	addObserverWriter    chan chan<- pages.Message
-	removeObserverWriter chan chan<- pages.Message
+	addObserverWriter    chan chan<- pages.OutgoingMessage
+	removeObserverWriter chan chan<- pages.OutgoingMessage
 }
 
 type Pages struct {
@@ -103,8 +103,8 @@ func (p *Pages) Observe(pageID pages.PageID, observer pages.ReadWriter) error {
 			return nil
 		}
 
-		addObserverWriter := make(chan chan<- pages.Message)
-		removeObserverWriter := make(chan chan<- pages.Message)
+		addObserverWriter := make(chan chan<- pages.OutgoingMessage)
+		removeObserverWriter := make(chan chan<- pages.OutgoingMessage)
 		instantiatedPage = ObservedInstantiatedPage{
 			instantiatedPage:     newInstantiatedPage,
 			addObserverWriter:    addObserverWriter,
@@ -114,7 +114,7 @@ func (p *Pages) Observe(pageID pages.PageID, observer pages.ReadWriter) error {
 
 		// the following goroutine manages all messages and channels that address sending from an instantiated page to all connected observers
 		go func() {
-			var writers []chan<- pages.Message
+			var writers []chan<- pages.OutgoingMessage
 			for {
 				select {
 				case message, ok := <-instantiatedPage.instantiatedPage.GetReader():

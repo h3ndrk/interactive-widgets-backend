@@ -15,8 +15,8 @@ type InstantiatedPage struct {
 
 	pageID pages.PageID
 
-	reader chan pages.Message
-	writer chan pages.Message
+	reader chan pages.OutgoingMessage
+	writer chan pages.IncomingMessage
 }
 
 func NewInstantiatedPage(pageID pages.PageID, widgets []pages.Widget) (*InstantiatedPage, error) {
@@ -97,8 +97,8 @@ func NewInstantiatedPage(pageID pages.PageID, widgets []pages.Widget) (*Instanti
 		instantiatedWidgets = append(instantiatedWidgets, widget)
 	}
 
-	reader := make(chan pages.Message)
-	writer := make(chan pages.Message)
+	reader := make(chan pages.OutgoingMessage)
+	writer := make(chan pages.IncomingMessage)
 	var closeWaiting sync.WaitGroup
 
 	closeWaiting.Add(len(instantiatedWidgets))
@@ -167,10 +167,10 @@ func NewInstantiatedPage(pageID pages.PageID, widgets []pages.Widget) (*Instanti
 	}, nil
 }
 
-func (d InstantiatedPage) GetReader() <-chan pages.Message {
+func (d InstantiatedPage) GetReader() <-chan pages.OutgoingMessage {
 	return d.reader
 }
 
-func (d InstantiatedPage) GetWriter() chan<- pages.Message {
+func (d InstantiatedPage) GetWriter() chan<- pages.IncomingMessage {
 	return d.writer
 }

@@ -1,13 +1,18 @@
 package pages
 
-type Message struct {
+type IncomingMessage struct {
+	WidgetID WidgetID
+	Data     []byte
+}
+
+type OutgoingMessage struct {
 	WidgetID WidgetID
 	Data     interface{}
 }
 
 type ReadWriter struct {
-	Reader <-chan Message
-	Writer chan<- Message
+	Reader <-chan IncomingMessage
+	Writer chan<- OutgoingMessage
 }
 
 type Pages interface {
@@ -43,11 +48,11 @@ type Widget interface {
 }
 
 type InstantiatedPage interface {
-	GetReader() <-chan Message
-	GetWriter() chan<- Message
+	GetReader() <-chan OutgoingMessage
+	GetWriter() chan<- IncomingMessage
 }
 
 type InstantiatedWidget interface {
-	GetReader() <-chan Message
-	GetWriter() chan<- Message
+	GetReader() <-chan OutgoingMessage
+	GetWriter() chan<- IncomingMessage
 }

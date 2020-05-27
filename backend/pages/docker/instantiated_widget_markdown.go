@@ -5,13 +5,13 @@ import (
 )
 
 type InstantiatedMarkdownWidget struct {
-	reader chan pages.Message
-	writer chan pages.Message
+	reader chan pages.OutgoingMessage
+	writer chan pages.IncomingMessage
 }
 
 func NewInstantiatedMarkdownWidget(widgetID pages.WidgetID, file string) (*InstantiatedMarkdownWidget, error) {
-	reader := make(chan pages.Message)
-	writer := make(chan pages.Message)
+	reader := make(chan pages.OutgoingMessage)
+	writer := make(chan pages.IncomingMessage)
 	go func() {
 		for range writer {
 			// discard
@@ -27,10 +27,10 @@ func NewInstantiatedMarkdownWidget(widgetID pages.WidgetID, file string) (*Insta
 	}, nil
 }
 
-func (i InstantiatedMarkdownWidget) GetReader() <-chan pages.Message {
+func (i InstantiatedMarkdownWidget) GetReader() <-chan pages.OutgoingMessage {
 	return i.reader
 }
 
-func (i InstantiatedMarkdownWidget) GetWriter() chan<- pages.Message {
+func (i InstantiatedMarkdownWidget) GetWriter() chan<- pages.IncomingMessage {
 	return i.writer
 }

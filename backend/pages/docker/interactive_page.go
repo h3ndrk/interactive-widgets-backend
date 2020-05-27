@@ -33,6 +33,8 @@ func NewInteractivePage(pageURL pages.PageURL, readPage parser.Page) (pages.Page
 			widgets = append(widgets, NewTextWidget(pageURL, pages.WidgetIndex(widgetIndex), readWidget))
 		case parser.ImageWidget:
 			widgets = append(widgets, NewImageWidget(pageURL, pages.WidgetIndex(widgetIndex), readWidget))
+		case parser.ButtonWidget:
+			widgets = append(widgets, NewButtonWidget(pageURL, pages.WidgetIndex(widgetIndex), readWidget))
 		default:
 			return nil, errors.Errorf("Got unimplemented widget type %T", readWidget)
 		}

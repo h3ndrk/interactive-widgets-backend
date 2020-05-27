@@ -9,8 +9,8 @@ import (
 )
 
 type InstantiatedImageWidget struct {
-	reader chan pages.Message
-	writer chan pages.Message
+	reader chan pages.OutgoingMessage
+	writer chan pages.IncomingMessage
 
 	contents []byte
 	errors   [][]byte
@@ -39,8 +39,8 @@ func NewInstantiatedImageWidget(widgetID pages.WidgetID, file string) (*Instanti
 	}
 
 	widget := &InstantiatedImageWidget{
-		reader: make(chan pages.Message),
-		writer: make(chan pages.Message),
+		reader: make(chan pages.OutgoingMessage),
+		writer: make(chan pages.IncomingMessage),
 	}
 	go func() {
 		for data := range process.OutputData {
@@ -48,7 +48,7 @@ func NewInstantiatedImageWidget(widgetID pages.WidgetID, file string) (*Instanti
 			case StdoutStream:
 				if bytes.Compare(data.Bytes, widget.contents) != 0 {
 					widget.contents = data.Bytes
-					widget.reader <- pages.Message{
+					widget.reader <- pages.OutgoingMessage{
 						WidgetID: widgetID,
 						Data: ImageMessage{
 							Contents: widget.contents,
@@ -58,7 +58,7 @@ func NewInstantiatedImageWidget(widgetID pages.WidgetID, file string) (*Instanti
 				}
 			case StderrStream:
 				widget.errors = append(widget.errors[:4], data.Bytes)
-				widget.reader <- pages.Message{
+				widget.reader <- pages.OutgoingMessage{
 					WidgetID: widgetID,
 					Data: ImageMessage{
 						Contents: widget.contents,
@@ -83,10 +83,10 @@ func NewInstantiatedImageWidget(widgetID pages.WidgetID, file string) (*Instanti
 	return widget, nil
 }
 
-func (d InstantiatedImageWidget) GetReader() <-chan pages.Message {
-	return d.reader
+func (i InstantiatedImageWidget) GetReader() <-chan pages.OutgoingMessage {
+	return i.reader
 }
 
-func (d InstantiatedImageWidget) GetWriter() chan<- pages.Message {
-	return d.writer
+func (i InstantiatedImageWidget) GetWriter() chan<- pages.IncomingMessage {
+	return i.writer
 }

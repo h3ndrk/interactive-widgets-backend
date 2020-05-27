@@ -14,6 +14,7 @@ type PageURL string
 type RoomID string
 type WidgetID string
 type WidgetIndex int
+type EncodedPageURL string
 type EncodedPageID string
 type EncodedWidgetID string
 
@@ -110,6 +111,18 @@ func PageURLAndRoomIDAndWidgetIndexFromWidgetID(widgetID WidgetID) (PageURL, Roo
 		return "", "", 0, errors.Errorf("Malformed widget ID \"%s\": Widget index not numeric", widgetID)
 	}
 	return PageURL(matches[1]), RoomID(matches[2]), WidgetIndex(widgetIndex), nil
+}
+
+func EncodePageURL(pageURL PageURL) EncodedPageURL {
+	return EncodedPageURL(hex.EncodeToString([]byte(pageURL)))
+}
+
+func DecodePageURL(encodedPageURL PageURL) (PageURL, error) {
+	pageURL, err := hex.DecodeString(string(encodedPageURL))
+	if err != nil {
+		return "", err
+	}
+	return PageURL(pageURL), nil
 }
 
 func EncodePageID(pageID PageID) EncodedPageID {
