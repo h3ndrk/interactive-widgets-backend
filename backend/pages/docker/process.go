@@ -2,12 +2,14 @@ package docker
 
 import (
 	"bufio"
+	"io"
 	"log"
 	"os/exec"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/creack/pty"
 	"github.com/pkg/errors"
 )
 
@@ -75,6 +77,7 @@ func NewLongRunningProcess(arguments []string, stdin <-chan []byte) (*LongRunnin
 
 			go func() {
 				defer stdinWriter.Close()
+
 				for {
 					select {
 					case data, ok := <-stdin:
@@ -144,6 +147,111 @@ func NewLongRunningProcess(arguments []string, stdin <-chan []byte) (*LongRunnin
 }
 
 func (l LongRunningProcess) Stop() {
+	close(l.running)
+	l.stopWaiting.Wait()
+}
+
+type LongRunningTerminalProcess struct {
+	running     chan struct{}
+	Output      <-chan []byte
+	stopWaiting *sync.WaitGroup
+}
+
+func NewLongRunningTerminalProcess(arguments []string, input <-chan []byte) (*LongRunningTerminalProcess, error) {
+	if len(arguments) <= 1 {
+		return nil, errors.New("too few arguments")
+	}
+
+	running := make(chan struct{})
+	output := make(chan []byte)
+	var stopWaiting sync.WaitGroup
+
+	go func() {
+		stopWaiting.Add(1)
+	loop:
+		for {
+			done := make(chan struct{})
+			process := exec.Command(arguments[0], arguments[1:]...)
+			pseudoTerminal, err := pty.Start(process)
+			if err != nil {
+				log.Print(err)
+				time.Sleep(time.Second)
+				continue
+			}
+
+			go func() {
+				defer pseudoTerminal.Close()
+
+				for {
+					select {
+					case data, ok := <-input:
+						if !ok {
+							return
+						}
+						_, err := pseudoTerminal.Write(data)
+						if err != nil {
+							log.Print(err)
+							continue
+						}
+					case <-done:
+						return
+					}
+				}
+			}()
+			go func() {
+				chunk := make([]byte, 4096)
+
+				for {
+					n, err := pseudoTerminal.Read(chunk)
+					if err != nil {
+						if err == io.EOF {
+							return
+						}
+						log.Print(err)
+						time.Sleep(time.Second)
+						continue
+					}
+
+					output <- chunk[:n]
+				}
+			}()
+			go func() {
+				select {
+				case <-done:
+				case _, ok := <-running:
+					if !ok {
+						if err := process.Process.Signal(syscall.SIGTERM); err != nil {
+							log.Print(err)
+						}
+					}
+				}
+			}()
+
+			process.Wait()
+			close(done)
+
+			select {
+			case _, ok := <-running:
+				if !ok {
+					break loop
+				}
+			default:
+				log.Print("Restarting process ...")
+				time.Sleep(time.Second)
+			}
+		}
+		close(output)
+		stopWaiting.Done()
+	}()
+
+	return &LongRunningTerminalProcess{
+		running:     running,
+		Output:      output,
+		stopWaiting: &stopWaiting,
+	}, nil
+}
+
+func (l LongRunningTerminalProcess) Stop() {
 	close(l.running)
 	l.stopWaiting.Wait()
 }
