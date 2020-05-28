@@ -22,25 +22,25 @@ func NewEditorWidget(pageURL pages.PageURL, widgetIndex pages.WidgetIndex, widge
 	}
 }
 
-func (t EditorWidget) Prepare() error {
+func (e EditorWidget) Prepare() error {
 	// TODO: build monitor-write image
 	return nil
 }
 
-func (t EditorWidget) Cleanup() error {
+func (e EditorWidget) Cleanup() error {
 	return nil
 }
 
-func (t EditorWidget) Instantiate(widgetID pages.WidgetID) (pages.InstantiatedWidget, error) {
-	return NewInstantiatedEditorWidget(widgetID, t.file)
+func (e EditorWidget) Instantiate(widgetID pages.WidgetID) (pages.InstantiatedWidget, error) {
+	return NewInstantiatedEditorWidget(widgetID, e.file)
 }
 
-func (t EditorWidget) MarshalWidget() ([]byte, error) {
+func (e EditorWidget) MarshalWidget() ([]byte, error) {
 	return json.Marshal(struct {
 		Type string `json:"type"`
 		File string `json:"file"`
 	}{
 		"editor",
-		t.file,
+		e.file,
 	})
 }
