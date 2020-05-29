@@ -1,6 +1,9 @@
 package docker
 
 import (
+	"fmt"
+	"os"
+	"os/exec"
 	"sync"
 
 	"github.com/h3ndrk/containerized-playground/internal/executor"
@@ -49,8 +52,21 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 		return errors.Errorf("No page with URL %s", pageURL)
 	}
 
-	// TODO: create volume
+	// create volume
+	volumeName := fmt.Sprintf("containerized-playground-%s", id.EncodePageID(pageID))
 
+	process := exec.Command("docker", "volume", "create", volumeName)
+	process.Stdout = os.Stdout
+	process.Stderr = os.Stderr
+
+	err = process.Start()
+	if err != nil {
+		return errors.Wrapf("Failed to create volume for page %s", pageID)
+	}
+
+	process.Wait()
+
+	// start widgets
 	e.widgetsMutex.Lock()
 	defer e.widgetsMutex.Unlock()
 
@@ -162,7 +178,19 @@ func (e *Executor) StopPage(pageID id.PageID) error {
 		delete(e.widgets, widgetID)
 	}
 
-	// TODO: remove volume
+	// remove volume
+	volumeName := fmt.Sprintf("containerized-playground-%s", id.EncodePageID(pageID))
+
+	process := exec.Command("docker", "volume", "rm", volumeName)
+	process.Stdout = os.Stdout
+	process.Stderr = os.Stderr
+
+	err = process.Start()
+	if err != nil {
+		return errors.Wrapf("Failed to remove volume for page %s", pageID)
+	}
+
+	process.Wait()
 
 	return nil
 }
