@@ -22,3 +22,11 @@ type ButtonOutputMessage struct {
 	Origin OutputStream `json:"origin"`
 	Data   []byte       `json:"data"`
 }
+
+type TerminalInputMessage struct {
+	Data []byte `json:"data"`
+}
+
+type TerminalOutputMessage struct {
+	Data []byte `json:"data"`
+}

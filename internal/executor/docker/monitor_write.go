@@ -19,8 +19,8 @@ import (
 type monitorWriteWidget struct {
 	running      chan struct{}
 	stopWaiting  *sync.WaitGroup
-	output       chan executor.MonitorWriteOutputMessage
 	input        chan executor.MonitorWriteInputMessage
+	output       chan executor.MonitorWriteOutputMessage
 	connectWrite bool
 
 	mutex    sync.Mutex

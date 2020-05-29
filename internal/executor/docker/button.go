@@ -69,6 +69,7 @@ func (w *buttonWidget) Write(data []byte) error {
 			return err
 		}
 		volumeName := fmt.Sprintf("containerized-playground-%s", id.EncodePageID(pageID))
+		imageName := fmt.Sprintf("containerized-playground-%s", id.EncodePageURL(pageURL))
 		containerName := fmt.Sprintf("containerized-playground-%s", id.EncodeWidgetID(widgetID))
 
 		go func() {

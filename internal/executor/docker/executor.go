@@ -83,6 +83,13 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 			}
 
 			e.widgets[widgetID] = editorWidget
+		case parser.TerminalWidget:
+			terminalWidget, err := newTerminalWidget(widgetID, widget)
+			if err != nil {
+				return err
+			}
+
+			e.widgets[widgetID] = terminalWidget
 		default:
 			panic("Not implemented")
 		}
