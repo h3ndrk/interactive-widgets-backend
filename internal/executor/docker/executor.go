@@ -54,12 +54,12 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 	e.widgetsMutex.Lock()
 	defer e.widgetsMutex.Unlock()
 
-	var widgets map[id.WidgetID]widgetStream
+	var temporaryWidgets map[id.WidgetID]widgetStream
 	defer func() {
 		// in case of error: close all temporary widgets
 		var closeWaiting sync.WaitGroup
-		closeWaiting.Add(len(widgets))
-		for widgetID, widget := range widgets {
+		closeWaiting.Add(len(temporaryWidgets))
+		for widgetID, widget := range temporaryWidgets {
 			go func(widget widgetStream, closeWaiting *sync.WaitGroup) {
 				widget.Close()
 				closeWaiting.Done()
@@ -81,44 +81,44 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 				return err
 			}
 
-			widgets[widgetID] = textWidget
+			temporaryWidgets[widgetID] = textWidget
 		case parser.ImageWidget:
 			imageWidget, err := newMonitorWriteWidget(widgetID, widget.File, false)
 			if err != nil {
 				return err
 			}
 
-			widgets[widgetID] = imageWidget
+			temporaryWidgets[widgetID] = imageWidget
 		case parser.ButtonWidget:
 			buttonWidget, err := newButtonWidget(widgetID, widget)
 			if err != nil {
 				return err
 			}
 
-			widgets[widgetID] = buttonWidget
+			temporaryWidgets[widgetID] = buttonWidget
 		case parser.EditorWidget:
 			editorWidget, err := newMonitorWriteWidget(widgetID, widget.File, true)
 			if err != nil {
 				return err
 			}
 
-			widgets[widgetID] = editorWidget
+			temporaryWidgets[widgetID] = editorWidget
 		case parser.TerminalWidget:
 			terminalWidget, err := newTerminalWidget(widgetID, widget)
 			if err != nil {
 				return err
 			}
 
-			widgets[widgetID] = terminalWidget
+			temporaryWidgets[widgetID] = terminalWidget
 		default:
 			panic("Not implemented")
 		}
 	}
 
 	// if reached here: copy widgets into executor and remove them from temporary widgets
-	for widgetID, widget := range widgets {
+	for widgetID, widget := range temporaryWidgets {
 		e.widgets[widgetID] = widget
-		delete(widgets, widgetID)
+		delete(temporaryWidgets, widgetID)
 	}
 
 	return nil
