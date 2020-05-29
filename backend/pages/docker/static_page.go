@@ -10,7 +10,7 @@ import (
 )
 
 type StaticPage struct {
-	markdownWidget MarkdownWidget
+	markdownWidget *MarkdownWidget
 
 	pageURL pages.PageURL
 }
@@ -23,15 +23,15 @@ func NewStaticPage(pageURL pages.PageURL, readPage parser.Page) (pages.Page, err
 		return nil, errors.New("Not containing one widget")
 	}
 	if readPage.Widgets[0].GetWidgetType() != parser.MarkdownWidgetType {
-		return nil, errors.New("Wrong widget type: Not a markdown widget")
+		return nil, errors.Errorf("Wrong widget type: Not a markdown widget (got: %+v)", readPage.Widgets[0].GetWidgetType())
 	}
 	readMarkdownWidget, ok := readPage.Widgets[0].(parser.MarkdownWidget)
 	if !ok {
 		return nil, errors.New("Wrong widget type: Not a markdown widget (type assertion)")
 	}
-	markdownWidget, ok := NewMarkdownWidget(pageURL, 0, readMarkdownWidget).(MarkdownWidget)
+	markdownWidget, ok := NewMarkdownWidget(pageURL, 0, readMarkdownWidget).(*MarkdownWidget)
 	if !ok {
-		return nil, errors.New("Wrong widget type constructed: Not a markdown widget")
+		return nil, errors.Errorf("Wrong widget type constructed: Not a markdown widget (got %T)", markdownWidget)
 	}
 
 	return &StaticPage{

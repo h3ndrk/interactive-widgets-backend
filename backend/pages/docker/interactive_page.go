@@ -20,7 +20,7 @@ func NewInteractivePage(pageURL pages.PageURL, readPage parser.Page) (pages.Page
 	if !readPage.IsInteractive {
 		return nil, errors.New("Got non-interactive read page")
 	}
-	if len(readPage.Widgets) > 0 {
+	if len(readPage.Widgets) == 0 {
 		return nil, errors.New("Not containing any widgets")
 	}
 

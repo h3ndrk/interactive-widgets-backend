@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"log"
+	"os"
 	"os/exec"
 	"sync"
 	"syscall"
@@ -204,7 +205,7 @@ func NewLongRunningTerminalProcess(arguments []string, input <-chan []byte) (*Lo
 				for {
 					n, err := pseudoTerminal.Read(chunk)
 					if err != nil {
-						if err == io.EOF {
+						if err == io.EOF || errors.Is(err, os.ErrClosed) {
 							return
 						}
 						log.Print(err)

@@ -57,7 +57,11 @@ func NewInstantiatedTextWidget(widgetID pages.WidgetID, file string) (*Instantia
 					}
 				}
 			case StderrStream:
-				widget.errors = append(widget.errors[:4], data.Bytes)
+				if len(widget.errors) > 4 {
+					widget.errors = append(widget.errors[len(widget.errors)-4:len(widget.errors)], data.Bytes)
+				} else {
+					widget.errors = append(widget.errors, data.Bytes)
+				}
 				widget.reader <- pages.OutgoingMessage{
 					WidgetID: widgetID,
 					Data: TextContentsMessage{

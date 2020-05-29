@@ -82,7 +82,7 @@ func (p *Pages) Observe(pageID pages.PageID, observer pages.ReadWriter) error {
 	if !ok {
 		return errors.Errorf("Page URL \"%s\" not existing", pageURL)
 	}
-	if _, ok := page.(InteractivePage); !ok {
+	if _, ok := page.(*InteractivePage); !ok {
 		return errors.Errorf("Page with URL \"%s\" not interactive", pageURL)
 	}
 
