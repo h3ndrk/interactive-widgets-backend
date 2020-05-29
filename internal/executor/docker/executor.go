@@ -56,21 +56,28 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 
 		switch widget := widget.(type) {
 		case parser.TextWidget:
-			textWidget, err := newMonitorWriteWidget(widgetID, widget, false)
+			textWidget, err := newMonitorWriteWidget(widgetID, widget.File, false)
 			if err != nil {
 				return err
 			}
 
 			e.widgets[widgetID] = textWidget
 		case parser.ImageWidget:
-			imageWidget, err := newMonitorWriteWidget(widgetID, widget, false)
+			imageWidget, err := newMonitorWriteWidget(widgetID, widget.File, false)
 			if err != nil {
 				return err
 			}
 
 			e.widgets[widgetID] = imageWidget
+		case parser.ButtonWidget:
+			buttonWidget, err := newButtonWidget(widgetID, widget)
+			if err != nil {
+				return err
+			}
+
+			e.widgets[widgetID] = buttonWidget
 		case parser.EditorWidget:
-			editorWidget, err := newMonitorWriteWidget(widgetID, widget, true)
+			editorWidget, err := newMonitorWriteWidget(widgetID, widget.File, true)
 			if err != nil {
 				return err
 			}

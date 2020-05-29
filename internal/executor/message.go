@@ -8,3 +8,17 @@ type MonitorWriteOutputMessage struct {
 type MonitorWriteInputMessage struct {
 	Contents []byte `json:"contents"`
 }
+
+type ButtonClickMessage struct {
+	Click bool `json:"click"`
+}
+
+type OutputStream string
+
+const StdoutStream OutputStream = "stdout"
+const StderrStream OutputStream = "stderr"
+
+type ButtonOutputMessage struct {
+	Origin OutputStream `json:"origin"`
+	Data   []byte       `json:"data"`
+}

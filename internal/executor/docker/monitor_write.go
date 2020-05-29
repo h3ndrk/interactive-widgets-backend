@@ -14,7 +14,6 @@ import (
 
 	"github.com/h3ndrk/containerized-playground/internal/executor"
 	"github.com/h3ndrk/containerized-playground/internal/id"
-	"github.com/h3ndrk/containerized-playground/internal/parser"
 )
 
 type monitorWriteWidget struct {
@@ -29,7 +28,7 @@ type monitorWriteWidget struct {
 	errors   [][]byte
 }
 
-func newMonitorWriteWidget(widgetID id.WidgetID, widget parser.TextWidget, bool connectWrite) (widgetStream, error) {
+func newMonitorWriteWidget(widgetID id.WidgetID, file string, bool connectWrite) (widgetStream, error) {
 	pageURL, roomID, _, err := id.PageURLAndRoomIDAndWidgetIndexFromWidgetID(widgetID)
 	if err != nil {
 		return nil, err
