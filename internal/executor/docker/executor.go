@@ -1,6 +1,8 @@
 package docker
 
 import (
+	"sync"
+
 	"github.com/h3ndrk/containerized-playground/internal/executor"
 	"github.com/h3ndrk/containerized-playground/internal/id"
 	"github.com/h3ndrk/containerized-playground/internal/parser"
@@ -14,8 +16,9 @@ type widgetStream interface {
 }
 
 type Executor struct {
-	pages   []parser.Page
-	widgets map[id.WidgetID]widgetStream
+	pages        []parser.Page
+	widgetsMutex sync.Mutex
+	widgets      map[id.WidgetID]widgetStream
 }
 
 func NewExecutor(pages []parser.Page) (executor.Executor, error) {
@@ -48,6 +51,23 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 
 	// TODO: create volume
 
+	e.widgetsMutex.Lock()
+	defer e.widgetsMutex.Unlock()
+
+	var widgets map[id.WidgetID]widgetStream
+	defer func() {
+		// in case of error: close all temporary widgets
+		var closeWaiting sync.WaitGroup
+		closeWaiting.Add(len(widgets))
+		for widgetID, widget := range widgets {
+			go func(widget widgetStream, closeWaiting *sync.WaitGroup) {
+				widget.Close()
+				closeWaiting.Done()
+			}()
+		}
+		closeWaiting.Wait()
+	}()
+
 	for widgetIndex, widget := range page.Widgets {
 		widgetID, err := id.WidgetIDFromPageURLAndRoomIDAndWidgetIndex(pageURL, roomID, id.WidgetIndex(widgetIndex))
 		if err != nil {
@@ -61,44 +81,89 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 				return err
 			}
 
-			e.widgets[widgetID] = textWidget
+			widgets[widgetID] = textWidget
 		case parser.ImageWidget:
 			imageWidget, err := newMonitorWriteWidget(widgetID, widget.File, false)
 			if err != nil {
 				return err
 			}
 
-			e.widgets[widgetID] = imageWidget
+			widgets[widgetID] = imageWidget
 		case parser.ButtonWidget:
 			buttonWidget, err := newButtonWidget(widgetID, widget)
 			if err != nil {
 				return err
 			}
 
-			e.widgets[widgetID] = buttonWidget
+			widgets[widgetID] = buttonWidget
 		case parser.EditorWidget:
 			editorWidget, err := newMonitorWriteWidget(widgetID, widget.File, true)
 			if err != nil {
 				return err
 			}
 
-			e.widgets[widgetID] = editorWidget
+			widgets[widgetID] = editorWidget
 		case parser.TerminalWidget:
 			terminalWidget, err := newTerminalWidget(widgetID, widget)
 			if err != nil {
 				return err
 			}
 
-			e.widgets[widgetID] = terminalWidget
+			widgets[widgetID] = terminalWidget
 		default:
 			panic("Not implemented")
 		}
+	}
+
+	// if reached here: copy widgets into executor and remove them from temporary widgets
+	for widgetID, widget := range widgets {
+		e.widgets[widgetID] = widget
+		delete(widgets, widgetID)
 	}
 
 	return nil
 }
 
 func (e *Executor) StopPage(pageID id.PageID) error {
+	pageURL, roomID, err := id.PageURLAndRoomIDFromPageID(pageID)
+	if err != nil {
+		return err
+	}
+
+	page := e.pageFromPageURL(pageURL)
+	if page == nil {
+		return errors.Errorf("No page with URL %s", pageURL)
+	}
+
+	e.widgetsMutex.Lock()
+	defer e.widgetsMutex.Unlock()
+
+	// close all widgets and remove them
+	var closeWaiting sync.WaitGroup
+	closeWaiting.Add(len(widgets))
+	for widgetIndex := range page.Widgets {
+		widgetID, err := id.WidgetIDFromPageURLAndRoomIDAndWidgetIndex(pageURL, roomID, id.WidgetIndex(widgetIndex))
+		if err != nil {
+			return err
+		}
+
+		go func(widget widgetStream, closeWaiting *sync.WaitGroup) {
+			widget.Close()
+			closeWaiting.Done()
+		}()
+	}
+	closeWaiting.Wait()
+	for widgetIndex := range page.Widgets {
+		widgetID, err := id.WidgetIDFromPageURLAndRoomIDAndWidgetIndex(pageURL, roomID, id.WidgetIndex(widgetIndex))
+		if err != nil {
+			return err
+		}
+
+		delete(e.widgets, widgetID)
+	}
+
+	// TODO: remove volume
+
 	return nil
 }
 
