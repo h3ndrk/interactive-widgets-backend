@@ -1,32 +1,44 @@
 package executor
 
+// MonitorWriteOutputMessage gets send from a monitor-write widget to the
+// client.
 type MonitorWriteOutputMessage struct {
 	Contents []byte   `json:"contents"`
 	Errors   [][]byte `json:"errors"`
 }
 
+// MonitorWriteInputMessage gets send from the client to a monitor-write
+// widget.
 type MonitorWriteInputMessage struct {
 	Contents []byte `json:"contents"`
 }
 
+// ButtonClickMessage gets send from the client to a button widget.
 type ButtonClickMessage struct {
 	Click bool `json:"click"`
 }
 
+// OutputStream represents the output stream.
 type OutputStream string
 
+// StdoutStream represents the stdout stream.
 const StdoutStream OutputStream = "stdout"
+
+// StderrStream represents the stderr stream.
 const StderrStream OutputStream = "stderr"
 
+// ButtonOutputMessage gets send from a button widget to the client.
 type ButtonOutputMessage struct {
 	Origin OutputStream `json:"origin"`
 	Data   []byte       `json:"data"`
 }
 
+// TerminalInputMessage gets send from the client to a terminal widget.
 type TerminalInputMessage struct {
 	Data []byte `json:"data"`
 }
 
+// TerminalOutputMessage gets send from a terminal widget to the client.
 type TerminalOutputMessage struct {
 	Data []byte `json:"data"`
 }
