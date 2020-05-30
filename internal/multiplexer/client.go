@@ -1,4 +1,4 @@
-package server
+package multiplexer
 
 import "github.com/h3ndrk/containerized-playground/internal/id"
 

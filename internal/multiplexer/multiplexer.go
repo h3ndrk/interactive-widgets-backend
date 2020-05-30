@@ -8,7 +8,6 @@ import (
 	"github.com/h3ndrk/containerized-playground/internal/executor"
 	"github.com/h3ndrk/containerized-playground/internal/id"
 	"github.com/h3ndrk/containerized-playground/internal/parser"
-	"github.com/h3ndrk/containerized-playground/internal/server"
 	"github.com/pkg/errors"
 )
 
@@ -30,7 +29,7 @@ type message struct {
 }
 
 type startedPage struct {
-	attachedClients []server.Client
+	attachedClients []Client
 	// toWidget is a mux channel from all attached clients to the widgets of the page (n:1)
 	toWidget chan message
 	// toClients is a mux channel from all widgets of the page to clients (n:1)
@@ -57,7 +56,7 @@ func NewMultiplexer(executor executor.Executor, pages []parser.Page) (*Multiplex
 // instance. If there are no more attached clients left, the page instance gets
 // stopped. It is safe to call this function with same page ID arguments from
 // different goroutines.
-func (m *Multiplexer) Attach(pageID id.PageID, client server.Client) error {
+func (m *Multiplexer) Attach(pageID id.PageID, client Client) error {
 	pageURL, roomID, err := id.PageURLAndRoomIDFromPageID(pageID)
 	if err != nil {
 		return err
