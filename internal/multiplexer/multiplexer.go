@@ -38,7 +38,7 @@ type startedPage struct {
 
 // NewMultiplexer creates a new multiplexer based on an executor and the
 // available pages.
-func NewMultiplexer(executor executor.Executor, pages []parser.Page) (*Multiplexer, error) {
+func NewMultiplexer(pages []parser.Page, executor executor.Executor) (*Multiplexer, error) {
 	// TODO: add context to all New*() functions to be able to tear down the whole process
 	return &Multiplexer{
 		executor: executor,
