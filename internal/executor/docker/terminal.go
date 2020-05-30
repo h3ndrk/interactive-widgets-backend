@@ -161,7 +161,8 @@ func (w *terminalWidget) Write(data []byte) error {
 	return nil
 }
 
-// Close closes the internal input channel.
+// Close closes the internal input channel. Afterwards, it waits for the
+// process to terminate.
 func (w *terminalWidget) Close() {
 	close(w.input)
 	w.stopWaiting.Wait()

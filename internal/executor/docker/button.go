@@ -135,7 +135,8 @@ func (w *buttonWidget) Write(data []byte) error {
 
 // Close stops this widget by marking it as stop-requested and eventually
 // sending SIGTERM to a running process. The output channel (from which Read
-// reads) is closed either immediatly or after process termination.
+// reads) is closed either immediatly or after process termination. Afterwards,
+// it waits for the process to terminate.
 func (w *buttonWidget) Close() {
 	w.mutex.Lock()
 
