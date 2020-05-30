@@ -27,6 +27,7 @@ type Executor struct {
 
 // NewExecutor creates a new executor from pages.
 func NewExecutor(pages []parser.Page) (executor.Executor, error) {
+	// TODO: build images
 	return &Executor{
 		pages: pages,
 	}, nil
