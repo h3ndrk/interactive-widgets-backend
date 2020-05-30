@@ -179,7 +179,8 @@ func (w *monitorWriteWidget) Read() ([]byte, error) {
 	return json.Marshal(data)
 }
 
-// Write writes messages to the internal input channel if the input channel is connected.
+// Write writes messages to the internal input channel if the input channel is
+// connected.
 func (w *monitorWriteWidget) Write(data []byte) error {
 	if w.connectWrite {
 		var inputMessage executor.MonitorWriteInputMessage
