@@ -61,7 +61,7 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 
 	err = process.Start()
 	if err != nil {
-		return errors.Wrapf("Failed to create volume for page %s", pageID)
+		return errors.Wrapf(err, "Failed to create volume for page %s", pageID)
 	}
 
 	process.Wait()
@@ -75,11 +75,11 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 		// in case of error: close all temporary widgets
 		var closeWaiting sync.WaitGroup
 		closeWaiting.Add(len(temporaryWidgets))
-		for widgetID, widget := range temporaryWidgets {
+		for _, widget := range temporaryWidgets {
 			go func(widget widgetStream, closeWaiting *sync.WaitGroup) {
 				widget.Close()
 				closeWaiting.Done()
-			}()
+			}(widget, &closeWaiting)
 		}
 		closeWaiting.Wait()
 	}()
@@ -156,17 +156,17 @@ func (e *Executor) StopPage(pageID id.PageID) error {
 
 	// close all widgets and remove them
 	var closeWaiting sync.WaitGroup
-	closeWaiting.Add(len(widgets))
 	for widgetIndex := range page.Widgets {
 		widgetID, err := id.WidgetIDFromPageURLAndRoomIDAndWidgetIndex(pageURL, roomID, id.WidgetIndex(widgetIndex))
 		if err != nil {
 			return err
 		}
 
+		closeWaiting.Add(1)
 		go func(widget widgetStream, closeWaiting *sync.WaitGroup) {
 			widget.Close()
 			closeWaiting.Done()
-		}()
+		}(e.widgets[widgetID], &closeWaiting)
 	}
 	closeWaiting.Wait()
 	for widgetIndex := range page.Widgets {
@@ -187,7 +187,7 @@ func (e *Executor) StopPage(pageID id.PageID) error {
 
 	err = process.Start()
 	if err != nil {
-		return errors.Wrapf("Failed to remove volume for page %s", pageID)
+		return errors.Wrapf(err, "Failed to remove volume for page %s", pageID)
 	}
 
 	process.Wait()

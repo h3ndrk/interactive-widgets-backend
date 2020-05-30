@@ -28,7 +28,7 @@ type monitorWriteWidget struct {
 	errors   [][]byte
 }
 
-func newMonitorWriteWidget(widgetID id.WidgetID, file string, bool connectWrite) (widgetStream, error) {
+func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool) (widgetStream, error) {
 	pageURL, roomID, _, err := id.PageURLAndRoomIDAndWidgetIndexFromWidgetID(widgetID)
 	if err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ func newMonitorWriteWidget(widgetID id.WidgetID, file string, bool connectWrite)
 								return
 							}
 
-							_, err := stdinWriter.Write(append(message.Data, "\n"...))
+							_, err := stdinWriter.Write(append(message.Contents, "\n"...))
 							if err != nil {
 								continue
 							}
@@ -192,13 +192,16 @@ func (w *monitorWriteWidget) Close() {
 
 	close(w.running)
 	w.stopWaiting.Wait()
-
-	return nil
 }
 
 func (w *monitorWriteWidget) storeAndSendContents(contents []byte) {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
+
+	if bytes.Compare(contents, w.contents) == 0 {
+		// nothing new to send
+		return
+	}
 
 	w.contents = contents
 
@@ -211,11 +214,6 @@ func (w *monitorWriteWidget) storeAndSendContents(contents []byte) {
 func (w *monitorWriteWidget) storeAndSendError(err []byte) {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
-
-	if bytes.Compare(decoded, w.contents) == 0 {
-		// nothing new to send
-		return
-	}
 
 	if len(w.errors) > 4 {
 		w.errors = append(w.errors[len(w.errors)-4:len(w.errors)], err)

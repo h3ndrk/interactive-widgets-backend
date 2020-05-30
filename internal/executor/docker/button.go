@@ -70,7 +70,7 @@ func (w *buttonWidget) Write(data []byte) error {
 		}
 		volumeName := fmt.Sprintf("containerized-playground-%s", id.EncodePageID(pageID))
 		imageName := fmt.Sprintf("containerized-playground-%s", id.EncodePageURL(pageURL))
-		containerName := fmt.Sprintf("containerized-playground-%s", id.EncodeWidgetID(widgetID))
+		containerName := fmt.Sprintf("containerized-playground-%s", id.EncodeWidgetID(w.widgetID))
 
 		go func() {
 			w.stopWaiting.Add(1)
@@ -160,6 +160,4 @@ func (w *buttonWidget) Close() {
 	w.mutex.Unlock()
 
 	w.stopWaiting.Wait()
-
-	return nil
 }

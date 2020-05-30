@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/craeck/pty"
+	"github.com/creack/pty"
 	"github.com/h3ndrk/containerized-playground/internal/executor"
 	"github.com/h3ndrk/containerized-playground/internal/id"
 	"github.com/h3ndrk/containerized-playground/internal/parser"
@@ -28,7 +28,7 @@ type terminalWidget struct {
 	errors   [][]byte
 }
 
-func newMonitorWriteWidget(widgetID id.WidgetID, widget parser.TerminalWidget, bool connectWrite) (widgetStream, error) {
+func newTerminalWidget(widgetID id.WidgetID, widget parser.TerminalWidget) (widgetStream, error) {
 	pageURL, roomID, _, err := id.PageURLAndRoomIDAndWidgetIndexFromWidgetID(widgetID)
 	if err != nil {
 		return nil, err
@@ -102,7 +102,9 @@ func newMonitorWriteWidget(widgetID id.WidgetID, widget parser.TerminalWidget, b
 						continue
 					}
 
-					w.output <- chunk[:n]
+					w.output <- executor.TerminalOutputMessage{
+						Data: chunk[:n],
+					}
 				}
 			}()
 
@@ -151,14 +153,12 @@ func (w *terminalWidget) Read() ([]byte, error) {
 }
 
 func (w *terminalWidget) Write(data []byte) error {
-	if w.connectWrite {
-		var inputMessage executor.TerminalInputMessage
-		if err := json.Unmarshal(data, &inputMessage); err != nil {
-			return err
-		}
-
-		w.input <- inputMessage
+	var inputMessage executor.TerminalInputMessage
+	if err := json.Unmarshal(data, &inputMessage); err != nil {
+		return err
 	}
+
+	w.input <- inputMessage
 
 	return nil
 }
@@ -166,6 +166,4 @@ func (w *terminalWidget) Write(data []byte) error {
 func (w *terminalWidget) Close() {
 	close(w.running)
 	w.stopWaiting.Wait()
-
-	return nil
 }
