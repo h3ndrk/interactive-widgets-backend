@@ -57,11 +57,13 @@ func (p *PageDirectoryParser) GetPages() ([]Page, error) {
 			}
 
 			readPages = append(readPages, Page{
-				IsInteractive: dockerfileExists,
-				BasePath:      basePath,
-				URL:           id.PageURL(url),
-				Widgets:       widgets,
-				ImagePaths:    imagePaths,
+				PageMetadata: PageMetadata{
+					IsInteractive: dockerfileExists,
+					BasePath:      basePath,
+					URL:           id.PageURL(url),
+				},
+				Widgets:    widgets,
+				ImagePaths: imagePaths,
 			})
 		}
 

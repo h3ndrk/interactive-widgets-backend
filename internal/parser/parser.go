@@ -18,12 +18,16 @@ func PageFromPageURL(pages []Page, pageURL id.PageURL) *Page {
 	return nil
 }
 
-type Page struct {
+type PageMetadata struct {
 	IsInteractive bool       `json:"isInteractive"`
 	BasePath      string     `json:"basePath"`
 	URL           id.PageURL `json:"url"`
-	Widgets       []Widget   `json:"widgets"`
-	ImagePaths    []string   `json:"imagePaths"`
+}
+
+type Page struct {
+	PageMetadata
+	Widgets    []Widget `json:"widgets"`
+	ImagePaths []string `json:"imagePaths"`
 }
 
 type Widget interface {
