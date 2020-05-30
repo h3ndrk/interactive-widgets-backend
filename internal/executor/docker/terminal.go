@@ -18,10 +18,10 @@ import (
 )
 
 type terminalWidget struct {
-	running     chan struct{}
-	stopWaiting *sync.WaitGroup
-	input       chan executor.TerminalInputMessage
-	output      chan executor.TerminalOutputMessage
+	stopWaiting   *sync.WaitGroup
+	input         chan executor.TerminalInputMessage
+	output        chan executor.TerminalOutputMessage
+	stopRequested bool
 
 	mutex    sync.Mutex
 	contents []byte
@@ -42,7 +42,6 @@ func newTerminalWidget(widgetID id.WidgetID, widget parser.TerminalWidget) (widg
 	containerName := fmt.Sprintf("containerized-playground-%s", id.EncodeWidgetID(widgetID))
 
 	w := &terminalWidget{
-		running:     make(chan struct{}),
 		stopWaiting: &sync.WaitGroup{},
 		output:      make(chan executor.TerminalOutputMessage),
 		input:       make(chan executor.TerminalInputMessage),
@@ -64,12 +63,19 @@ func newTerminalWidget(widgetID id.WidgetID, widget parser.TerminalWidget) (widg
 			}
 
 			go func() {
-				defer pseudoTerminal.Close()
-
 				for {
 					select {
 					case message, ok := <-w.input:
 						if !ok {
+							// at this point: process is still running but input closed (this must have happened from outside via Close())
+							// therefore: stop process
+							w.stopRequested = true
+							if err := process.Process.Signal(syscall.SIGTERM); err != nil {
+								w.output <- executor.TerminalOutputMessage{
+									Data: []byte(err.Error() + "\n"),
+								}
+							}
+
 							return
 						}
 
@@ -86,6 +92,8 @@ func newTerminalWidget(widgetID id.WidgetID, widget parser.TerminalWidget) (widg
 			}()
 
 			go func() {
+				defer pseudoTerminal.Close()
+
 				chunk := make([]byte, 4096)
 
 				for {
@@ -108,29 +116,12 @@ func newTerminalWidget(widgetID id.WidgetID, widget parser.TerminalWidget) (widg
 				}
 			}()
 
-			go func() {
-				select {
-				case <-done:
-				case _, ok := <-w.running:
-					if !ok {
-						if err := process.Process.Signal(syscall.SIGTERM); err != nil {
-							w.output <- executor.TerminalOutputMessage{
-								Data: []byte(err.Error() + "\n"),
-							}
-						}
-					}
-				}
-			}()
-
 			process.Wait()
 			close(done)
 
-			select {
-			case _, ok := <-w.running:
-				if !ok {
-					break loop
-				}
-			default:
+			if w.stopRequested {
+				break loop
+			} else {
 				// restarting process
 				time.Sleep(time.Second)
 			}
@@ -164,6 +155,6 @@ func (w *terminalWidget) Write(data []byte) error {
 }
 
 func (w *terminalWidget) Close() {
-	close(w.running)
+	close(w.input)
 	w.stopWaiting.Wait()
 }
