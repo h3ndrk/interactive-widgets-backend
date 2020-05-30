@@ -27,42 +27,54 @@ type Page struct {
 }
 
 type Widget interface {
-	IsWidget()
+	IsInteractive() bool
 }
 
 type MarkdownWidget struct {
 	Contents string `json:"contents"`
 }
 
-func (MarkdownWidget) IsWidget() {}
+func (MarkdownWidget) IsInteractive() bool {
+	return false
+}
 
 type TextWidget struct {
 	File string `json:"file"`
 }
 
-func (TextWidget) IsWidget() {}
+func (TextWidget) IsInteractive() bool {
+	return true
+}
 
 type ImageWidget struct {
 	File string `json:"file"`
 }
 
-func (ImageWidget) IsWidget() {}
+func (ImageWidget) IsInteractive() bool {
+	return true
+}
 
 type ButtonWidget struct {
 	Label   string `json:"label"`
 	Command string `json:"command"`
 }
 
-func (ButtonWidget) IsWidget() {}
+func (ButtonWidget) IsInteractive() bool {
+	return true
+}
 
 type EditorWidget struct {
 	File string `json:"file"`
 }
 
-func (EditorWidget) IsWidget() {}
+func (EditorWidget) IsInteractive() bool {
+	return true
+}
 
 type TerminalWidget struct {
 	WorkingDirectory string `json:"workingDirectory"`
 }
 
-func (TerminalWidget) IsWidget() {}
+func (TerminalWidget) IsInteractive() bool {
+	return true
+}

@@ -78,6 +78,10 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 	}()
 
 	for widgetIndex, widget := range page.Widgets {
+		if !widget.IsInteractive() {
+			continue
+		}
+
 		widgetID, err := id.WidgetIDFromPageURLAndRoomIDAndWidgetIndex(pageURL, roomID, id.WidgetIndex(widgetIndex))
 		if err != nil {
 			return err
@@ -151,7 +155,11 @@ func (e *Executor) StopPage(pageID id.PageID) error {
 
 	// close all widgets and remove them
 	var closeWaiting sync.WaitGroup
-	for widgetIndex := range page.Widgets {
+	for widgetIndex, widget := range page.Widgets {
+		if !widget.IsInteractive() {
+			continue
+		}
+
 		widgetID, err := id.WidgetIDFromPageURLAndRoomIDAndWidgetIndex(pageURL, roomID, id.WidgetIndex(widgetIndex))
 		if err != nil {
 			return err
@@ -164,7 +172,11 @@ func (e *Executor) StopPage(pageID id.PageID) error {
 		}(e.widgets[widgetID], &closeWaiting)
 	}
 	closeWaiting.Wait()
-	for widgetIndex := range page.Widgets {
+	for widgetIndex, widget := range page.Widgets {
+		if !widget.IsInteractive() {
+			continue
+		}
+
 		widgetID, err := id.WidgetIDFromPageURLAndRoomIDAndWidgetIndex(pageURL, roomID, id.WidgetIndex(widgetIndex))
 		if err != nil {
 			return err
