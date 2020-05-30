@@ -18,12 +18,14 @@ type widgetStream interface {
 	Close()
 }
 
+// Executor implements the executor.Executor interface.
 type Executor struct {
 	pages        []parser.Page
 	widgetsMutex sync.Mutex
 	widgets      map[id.WidgetID]widgetStream
 }
 
+// NewExecutor creates a new executor from pages.
 func NewExecutor(pages []parser.Page) (executor.Executor, error) {
 	return &Executor{
 		pages: pages,
@@ -40,6 +42,7 @@ func (e *Executor) pageFromPageURL(pageURL id.PageURL) *parser.Page {
 	return nil
 }
 
+// StartPage creates a docker volume and starts all widget containers.
 func (e *Executor) StartPage(pageID id.PageID) error {
 	// TODO: define error types
 	pageURL, roomID, err := id.PageURLAndRoomIDFromPageID(pageID)
@@ -127,6 +130,7 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 
 			temporaryWidgets[widgetID] = terminalWidget
 		default:
+			// TODO: create dummy widgets for other widgets?
 			panic("Not implemented")
 		}
 	}
@@ -140,6 +144,7 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 	return nil
 }
 
+// StopPage removes the docker volume and stops all widget containers.
 func (e *Executor) StopPage(pageID id.PageID) error {
 	pageURL, roomID, err := id.PageURLAndRoomIDFromPageID(pageID)
 	if err != nil {
@@ -195,8 +200,11 @@ func (e *Executor) StopPage(pageID id.PageID) error {
 	return nil
 }
 
+// Read returns data from the widget with given widget ID.
 func (e *Executor) Read(widgetID id.WidgetID) ([]byte, error) {
+	e.widgetsMutex.Lock()
 	widget, ok := e.widgets[widgetID]
+	e.widgetsMutex.Unlock()
 	if !ok {
 		return nil, errors.Errorf("No widget with ID %s", widgetID)
 	}
@@ -204,8 +212,11 @@ func (e *Executor) Read(widgetID id.WidgetID) ([]byte, error) {
 	return widget.Read()
 }
 
+// Write sends given data to the widget with given widget ID.
 func (e *Executor) Write(widgetID id.WidgetID, data []byte) error {
+	e.widgetsMutex.Lock()
 	widget, ok := e.widgets[widgetID]
+	e.widgetsMutex.Unlock()
 	if !ok {
 		return errors.Errorf("No widget with ID %s", widgetID)
 	}
