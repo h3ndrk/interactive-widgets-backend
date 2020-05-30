@@ -16,6 +16,12 @@ import (
 	"github.com/h3ndrk/containerized-playground/internal/id"
 )
 
+// monitorWriteWidget represents one instance of a monitor-write widget (i.e.
+// a widget that can monitor a file and can write to it) running as docker
+// container. The process gets restarted if it stops but should not have
+// stopped. Implementation errors are also passed to the output. The
+// implementation communicates via three channels (input, output, stop
+// controlling).
 type monitorWriteWidget struct {
 	running      chan struct{}
 	stopWaiting  *sync.WaitGroup
@@ -163,6 +169,7 @@ func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool)
 	return w, nil
 }
 
+// Read returns messages from the internal output channel.
 func (w *monitorWriteWidget) Read() ([]byte, error) {
 	data, ok := <-w.output
 	if !ok {
@@ -172,6 +179,7 @@ func (w *monitorWriteWidget) Read() ([]byte, error) {
 	return json.Marshal(data)
 }
 
+// Write writes messages to the internal input channel if the input channel is connected.
 func (w *monitorWriteWidget) Write(data []byte) error {
 	if w.connectWrite {
 		var inputMessage executor.MonitorWriteInputMessage
@@ -185,6 +193,8 @@ func (w *monitorWriteWidget) Write(data []byte) error {
 	return nil
 }
 
+// Close closes the internal input and stop controlling channel. Afterwards,
+// it waits for the process to terminate.
 func (w *monitorWriteWidget) Close() {
 	if w.connectWrite {
 		close(w.input)
