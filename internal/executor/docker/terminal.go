@@ -17,6 +17,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+// terminalWidget represents one instance of a terminal widget running as
+// docker container. A terminal widget runs a process in a pseudo terminal. The
+// process gets restarted if it stops but should not have stopped.
+// Implementation errors are also passed to the output. The implementation
+// communicates via two channels.
 type terminalWidget struct {
 	stopWaiting   *sync.WaitGroup
 	input         chan executor.TerminalInputMessage
@@ -134,6 +139,7 @@ func newTerminalWidget(widgetID id.WidgetID, widget parser.TerminalWidget) (widg
 	return w, nil
 }
 
+// Read returns messages from the internal output channel.
 func (w *terminalWidget) Read() ([]byte, error) {
 	data, ok := <-w.output
 	if !ok {
@@ -143,6 +149,7 @@ func (w *terminalWidget) Read() ([]byte, error) {
 	return json.Marshal(data)
 }
 
+// Write writes messages to the internal input channel.
 func (w *terminalWidget) Write(data []byte) error {
 	var inputMessage executor.TerminalInputMessage
 	if err := json.Unmarshal(data, &inputMessage); err != nil {
@@ -154,6 +161,7 @@ func (w *terminalWidget) Write(data []byte) error {
 	return nil
 }
 
+// Close closes the internal input channel.
 func (w *terminalWidget) Close() {
 	close(w.input)
 	w.stopWaiting.Wait()
