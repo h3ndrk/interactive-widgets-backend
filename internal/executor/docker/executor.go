@@ -32,16 +32,6 @@ func NewExecutor(pages []parser.Page) (executor.Executor, error) {
 	}, nil
 }
 
-func (e *Executor) pageFromPageURL(pageURL id.PageURL) *parser.Page {
-	for i, page := range e.pages {
-		if page.URL == pageURL {
-			return &e.pages[i]
-		}
-	}
-
-	return nil
-}
-
 // StartPage creates a docker volume and starts all widget containers.
 func (e *Executor) StartPage(pageID id.PageID) error {
 	// TODO: define error types
@@ -50,7 +40,7 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 		return err
 	}
 
-	page := e.pageFromPageURL(pageURL)
+	page := parser.PageFromPageURL(e.pages, pageURL)
 	if page == nil {
 		return errors.Errorf("No page with URL %s", pageURL)
 	}
@@ -151,7 +141,7 @@ func (e *Executor) StopPage(pageID id.PageID) error {
 		return err
 	}
 
-	page := e.pageFromPageURL(pageURL)
+	page := parser.PageFromPageURL(e.pages, pageURL)
 	if page == nil {
 		return errors.Errorf("No page with URL %s", pageURL)
 	}

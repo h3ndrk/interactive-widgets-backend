@@ -6,6 +6,18 @@ type Parser interface {
 	GetPages() ([]Page, error)
 }
 
+// PageFromPageURL searches given pages for a page with given page URL.
+// Returns a pointer to the found page or nil.
+func PageFromPageURL(pages []Page, pageURL id.PageURL) *Page {
+	for i, page := range pages {
+		if page.URL == pageURL {
+			return &pages[i]
+		}
+	}
+
+	return nil
+}
+
 type Page struct {
 	IsInteractive bool       `json:"isInteractive"`
 	BasePath      string     `json:"basePath"`
