@@ -14,6 +14,11 @@ import (
 	"github.com/h3ndrk/containerized-playground/internal/parser"
 )
 
+// buttonWidget represents one instance of a button widget which can be invoked
+// by a click. The click runs a defined command as docker container. Multiple
+// clicks while a process is running are discarded (at most one process runs
+// in parallel). Implementation errors are not passed to the output. The
+// implementation communicates via one channel.
 type buttonWidget struct {
 	stopWaiting *sync.WaitGroup
 	output      chan executor.ButtonOutputMessage
