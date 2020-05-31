@@ -127,7 +127,7 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 			temporaryWidgets[widgetID] = terminalWidget
 		default:
 			// TODO: create dummy widgets for other widgets?
-			panic("Not implemented")
+			return errors.Wrapf(err, "Interactive widget not implemented: %T", widget)
 		}
 	}
 
