@@ -64,7 +64,7 @@ func (w *buttonWidget) Write(data []byte) error {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 
-	if w.process == nil {
+	if w.process == nil && !w.stopRequested {
 		pageURL, roomID, _, err := id.PageURLAndRoomIDAndWidgetIndexFromWidgetID(w.widgetID)
 		if err != nil {
 			return err
