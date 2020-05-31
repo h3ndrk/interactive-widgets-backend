@@ -11,6 +11,7 @@ type Client interface {
 
 	// Write sends given data of a given widget to the client. If the client
 	// cannot receive any data currently, Write blocks until the data has been
-	// sent to the client.
+	// sent to the client. It is safe to call this function from different
+	// goroutines.
 	Write(id.WidgetID, []byte) error
 }

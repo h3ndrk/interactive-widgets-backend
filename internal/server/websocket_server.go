@@ -124,6 +124,7 @@ func NewWebSocketServer(pages []parser.Page, multiplexer *multiplexer.Multiplexe
 			pageID:        pageID,
 			connection:    connection,
 			closeWaiting:  &sync.WaitGroup{},
+			writeMutex:    &sync.Mutex{},
 		}
 		client.closeWaiting.Add(1)
 
@@ -153,6 +154,7 @@ type webSocketClient struct {
 	pageID        id.PageID
 	connection    *websocket.Conn
 	closeWaiting  *sync.WaitGroup
+	writeMutex    *sync.Mutex
 }
 
 func (c *webSocketClient) Read() (id.WidgetID, []byte, error) {
@@ -197,6 +199,8 @@ func (c *webSocketClient) Write(widgetID id.WidgetID, data []byte) error {
 		return errors.Errorf("Widget ID \"%s\" of message to send to client is invalid", widgetID)
 	}
 
+	c.writeMutex.Lock()
+	defer c.writeMutex.Unlock()
 	if err := c.connection.WriteJSON(&webSocketMessage{
 		WidgetIndex: widgetIndex,
 		Data:        data,
