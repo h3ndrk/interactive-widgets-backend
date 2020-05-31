@@ -328,7 +328,7 @@ func (w *monitorWriteWidget) Close() error {
 	// this case is only skipped when Close is called after another Close and process termination
 	if process != nil {
 		if err := process.Process.Signal(syscall.SIGTERM); err != nil {
-			return errors.Wrap(err, "Failed to send signal to pseudo terminal process")
+			return errors.Wrap(err, "Failed to send signal to monitor-write process")
 		}
 	}
 
