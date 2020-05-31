@@ -33,9 +33,10 @@ type buttonWidget struct {
 
 func newButtonWidget(widgetID id.WidgetID, widget *parser.ButtonWidget) (widgetStream, error) {
 	return &buttonWidget{
-		output:   make(chan executor.ButtonOutputMessage),
-		widgetID: widgetID,
-		command:  widget.Command,
+		stopWaiting: &sync.WaitGroup{},
+		output:      make(chan executor.ButtonOutputMessage),
+		widgetID:    widgetID,
+		command:     widget.Command,
 	}, nil
 }
 
