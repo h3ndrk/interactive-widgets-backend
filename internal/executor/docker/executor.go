@@ -29,7 +29,8 @@ type Executor struct {
 func NewExecutor(pages []parser.Page) (executor.Executor, error) {
 	// TODO: build images
 	return &Executor{
-		pages: pages,
+		pages:   pages,
+		widgets: map[id.WidgetID]widgetStream{},
 	}, nil
 }
 
@@ -64,7 +65,7 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 	e.widgetsMutex.Lock()
 	defer e.widgetsMutex.Unlock()
 
-	var temporaryWidgets map[id.WidgetID]widgetStream
+	temporaryWidgets := map[id.WidgetID]widgetStream{}
 	defer func() {
 		// in case of error: close all temporary widgets
 		var closeWaiting sync.WaitGroup
