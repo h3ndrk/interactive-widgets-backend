@@ -31,7 +31,7 @@ type buttonWidget struct {
 	process       *exec.Cmd
 }
 
-func newButtonWidget(widgetID id.WidgetID, widget parser.ButtonWidget) (widgetStream, error) {
+func newButtonWidget(widgetID id.WidgetID, widget *parser.ButtonWidget) (widgetStream, error) {
 	return &buttonWidget{
 		output:   make(chan executor.ButtonOutputMessage),
 		widgetID: widgetID,

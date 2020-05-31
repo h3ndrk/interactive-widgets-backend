@@ -90,35 +90,35 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 		}
 
 		switch widget := widget.(type) {
-		case parser.TextWidget:
+		case *parser.TextWidget:
 			textWidget, err := newMonitorWriteWidget(widgetID, widget.File, false)
 			if err != nil {
 				return err
 			}
 
 			temporaryWidgets[widgetID] = textWidget
-		case parser.ImageWidget:
+		case *parser.ImageWidget:
 			imageWidget, err := newMonitorWriteWidget(widgetID, widget.File, false)
 			if err != nil {
 				return err
 			}
 
 			temporaryWidgets[widgetID] = imageWidget
-		case parser.ButtonWidget:
+		case *parser.ButtonWidget:
 			buttonWidget, err := newButtonWidget(widgetID, widget)
 			if err != nil {
 				return err
 			}
 
 			temporaryWidgets[widgetID] = buttonWidget
-		case parser.EditorWidget:
+		case *parser.EditorWidget:
 			editorWidget, err := newMonitorWriteWidget(widgetID, widget.File, true)
 			if err != nil {
 				return err
 			}
 
 			temporaryWidgets[widgetID] = editorWidget
-		case parser.TerminalWidget:
+		case *parser.TerminalWidget:
 			terminalWidget, err := newTerminalWidget(widgetID, widget)
 			if err != nil {
 				return err

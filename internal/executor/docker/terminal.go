@@ -33,7 +33,7 @@ type terminalWidget struct {
 	errors   [][]byte
 }
 
-func newTerminalWidget(widgetID id.WidgetID, widget parser.TerminalWidget) (widgetStream, error) {
+func newTerminalWidget(widgetID id.WidgetID, widget *parser.TerminalWidget) (widgetStream, error) {
 	pageURL, roomID, _, err := id.PageURLAndRoomIDAndWidgetIndexFromWidgetID(widgetID)
 	if err != nil {
 		return nil, err
