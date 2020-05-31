@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os/exec"
 	"sync"
 	"syscall"
@@ -14,6 +15,8 @@ import (
 
 	"github.com/h3ndrk/containerized-playground/internal/executor"
 	"github.com/h3ndrk/containerized-playground/internal/id"
+	"github.com/hashicorp/go-multierror"
+	"github.com/pkg/errors"
 )
 
 // monitorWriteWidget represents one instance of a monitor-write widget (i.e.
@@ -23,11 +26,18 @@ import (
 // implementation communicates via three channels (input, output, stop
 // controlling).
 type monitorWriteWidget struct {
-	running      chan struct{}
-	stopWaiting  *sync.WaitGroup
-	input        chan executor.MonitorWriteInputMessage
-	output       chan executor.MonitorWriteOutputMessage
-	connectWrite bool
+	running       chan struct{}
+	stopWaiting   *sync.WaitGroup
+	stopRequested bool
+	output        chan executor.MonitorWriteOutputMessage
+	connectWrite  bool
+
+	runningMutex  sync.Mutex
+	process       *exec.Cmd
+	stdinWriter   io.WriteCloser
+	stdoutChannel chan []byte
+	stderrChannel chan []byte
+	errChannel    chan error
 
 	mutex    sync.Mutex
 	contents []byte
@@ -51,119 +61,134 @@ func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool)
 		stopWaiting:  &sync.WaitGroup{},
 		output:       make(chan executor.MonitorWriteOutputMessage),
 		connectWrite: connectWrite,
+
+		stdoutChannel: make(chan []byte),
+		stderrChannel: make(chan []byte),
+		errChannel:    make(chan error, 3), // ensure that errors are non-blocking (there are at most 3 places where at least one error gets written)
 	}
 
-	if w.connectWrite {
-		w.input = make(chan executor.MonitorWriteInputMessage)
-	}
+	w.runningMutex.Lock()
 
 	go func() {
 		w.stopWaiting.Add(1)
+		defer w.stopWaiting.Done()
+
+		defer close(w.stdoutChannel)
+		defer close(w.stderrChannel)
+		defer close(w.errChannel) // errChannel needs to close last
+		defer w.runningMutex.Unlock()
 	loop:
 		for {
-			done := make(chan struct{})
-			process := exec.Command("docker", "run", "--rm", "--name", containerName, "--network=none", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), "containerized-playground-monitor-write", file)
+			w.process = exec.Command("docker", "run", "--rm", "--name", containerName, "--network=none", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), "containerized-playground-monitor-write", file)
 
-			stdinWriter, err := process.StdinPipe()
+			stdinWriter, err := w.process.StdinPipe()
 			if err != nil {
-				w.storeAndSendError([]byte(err.Error()))
-				time.Sleep(time.Second)
-				continue
+				log.Print(errors.Wrap(err, "Failed to create stdin pipe for monitor-write process"))
+				if w.stopRequested {
+					w.process = nil
+					break loop
+				} else {
+					// restarting process
+					time.Sleep(time.Second)
+					continue
+				}
 			}
+			w.stdinWriter = stdinWriter
 
-			stdoutPipe, err := process.StdoutPipe()
+			stdoutPipe, err := w.process.StdoutPipe()
 			if err != nil {
-				w.storeAndSendError([]byte(err.Error()))
-				time.Sleep(time.Second)
-				continue
+				log.Print(errors.Wrap(err, "Failed to create stdout pipe for monitor-write process"))
+				if w.stopRequested {
+					w.process = nil
+					break loop
+				} else {
+					// restarting process
+					time.Sleep(time.Second)
+					continue
+				}
 			}
 			stdoutScanner := bufio.NewScanner(stdoutPipe)
 
-			stderrPipe, err := process.StderrPipe()
+			stderrPipe, err := w.process.StderrPipe()
 			if err != nil {
-				w.storeAndSendError([]byte(err.Error()))
-				time.Sleep(time.Second)
-				continue
+				log.Print(errors.Wrap(err, "Failed to create stderr pipe for monitor-write process"))
+				if w.stopRequested {
+					w.process = nil
+					break loop
+				} else {
+					// restarting process
+					time.Sleep(time.Second)
+					continue
+				}
 			}
 			stderrScanner := bufio.NewScanner(stderrPipe)
 
-			err = process.Start()
+			err = w.process.Start()
 			if err != nil {
-				w.storeAndSendError([]byte(err.Error()))
-				time.Sleep(time.Second)
-				continue
+				log.Print(errors.Wrap(err, "Failed to start monitor-write process"))
+				if w.stopRequested {
+					w.process = nil
+					break loop
+				} else {
+					// restarting process
+					time.Sleep(time.Second)
+					continue
+				}
 			}
 
-			if w.connectWrite {
-				go func() {
-					defer stdinWriter.Close()
-
-					for {
-						select {
-						case message, ok := <-w.input:
-							if !ok {
-								return
-							}
-
-							_, err := stdinWriter.Write(append(message.Contents, "\n"...))
-							if err != nil {
-								continue
-							}
-						case <-done:
-							return
-						}
-					}
-				}()
-			} else {
-				stdinWriter.Close()
+			if !w.connectWrite {
+				if err := stdinWriter.Close(); err != nil {
+					log.Print(errors.Wrap(err, "Failed to close disconnected stdin pipe of monitor-write process"))
+				}
 			}
 
+			var outputStreamWaiting sync.WaitGroup
+
+			outputStreamWaiting.Add(1)
 			go func() {
+				defer outputStreamWaiting.Done()
+
 				for stdoutScanner.Scan() {
 					decoded, err := base64.StdEncoding.DecodeString(stdoutScanner.Text())
 					if err != nil {
-						w.storeAndSendError([]byte(err.Error()))
-						continue
+						w.errChannel <- err
+						break
 					}
 
-					w.storeAndSendContents(decoded)
+					w.stdoutChannel <- decoded
+				}
+				if err := stdoutScanner.Err(); err != nil {
+					w.errChannel <- err
 				}
 			}()
 
+			outputStreamWaiting.Add(1)
 			go func() {
+				defer outputStreamWaiting.Done()
+
 				for stderrScanner.Scan() {
-					w.storeAndSendError(stderrScanner.Bytes())
+					w.stderrChannel <- stderrScanner.Bytes()
+				}
+				if err := stderrScanner.Err(); err != nil {
+					w.errChannel <- err
 				}
 			}()
 
-			go func() {
-				select {
-				case <-done:
-				case _, ok := <-w.running:
-					if !ok {
-						if err := process.Process.Signal(syscall.SIGTERM); err != nil {
-							w.storeAndSendError([]byte(err.Error()))
-						}
-					}
-				}
-			}()
+			w.runningMutex.Unlock()
 
-			process.Wait()
-			close(done)
+			w.process.Wait()
+			outputStreamWaiting.Wait()
 
-			select {
-			case _, ok := <-w.running:
-				if !ok {
-					break loop
-				}
-			default:
+			w.runningMutex.Lock()
+
+			if w.stopRequested {
+				w.process = nil
+				break loop
+			} else {
 				// restarting process
 				time.Sleep(time.Second)
 			}
 		}
-
-		close(w.output)
-		w.stopWaiting.Done()
 	}()
 
 	return w, nil
@@ -171,12 +196,114 @@ func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool)
 
 // Read returns messages from the internal output channel.
 func (w *monitorWriteWidget) Read() ([]byte, error) {
-	data, ok := <-w.output
-	if !ok {
-		return nil, io.EOF
+	stdoutCloseDetected := false
+	stderrCloseDetected := false
+
+	// try to read from stdout or stderr with higher priority (to drain stdout/stderr channels)
+	for !stdoutCloseDetected || !stderrCloseDetected {
+		if !stdoutCloseDetected && !stderrCloseDetected {
+			select {
+			case data, ok := <-w.stdoutChannel:
+				if !ok {
+					stdoutCloseDetected = true
+				} else {
+					if bytes.Compare(data, w.contents) != 0 {
+						w.contents = data
+
+						marshalled, err := json.Marshal(&executor.MonitorWriteOutputMessage{
+							Contents: data,
+							Errors:   w.errors,
+						})
+						if err != nil {
+							log.Print(errors.Wrap(err, "Failed to marshal output message"))
+							time.Sleep(time.Second)
+							// retry
+						} else {
+							return marshalled, nil
+						}
+					}
+				}
+			case data, ok := <-w.stderrChannel:
+				if !ok {
+					stderrCloseDetected = true
+				} else {
+					if len(w.errors) > 4 {
+						w.errors = append(w.errors[len(w.errors)-4:len(w.errors)], data)
+					} else {
+						w.errors = append(w.errors, data)
+					}
+
+					marshalled, err := json.Marshal(&executor.MonitorWriteOutputMessage{
+						Contents: data,
+						Errors:   w.errors,
+					})
+					if err != nil {
+						log.Print(errors.Wrap(err, "Failed to marshal output message"))
+						time.Sleep(time.Second)
+						// retry
+					} else {
+						return marshalled, nil
+					}
+				}
+			}
+		} else if !stdoutCloseDetected && stderrCloseDetected {
+			select {
+			case data, ok := <-w.stdoutChannel:
+				if !ok {
+					stdoutCloseDetected = true
+				} else {
+					if bytes.Compare(data, w.contents) != 0 {
+						w.contents = data
+
+						marshalled, err := json.Marshal(&executor.MonitorWriteOutputMessage{
+							Contents: data,
+							Errors:   w.errors,
+						})
+						if err != nil {
+							log.Print(errors.Wrap(err, "Failed to marshal output message"))
+							time.Sleep(time.Second)
+							// retry
+						} else {
+							return marshalled, nil
+						}
+					}
+				}
+			}
+		} else if stdoutCloseDetected && !stderrCloseDetected {
+			select {
+			case data, ok := <-w.stderrChannel:
+				if !ok {
+					stderrCloseDetected = true
+				} else {
+					if len(w.errors) > 4 {
+						w.errors = append(w.errors[len(w.errors)-4:len(w.errors)], data)
+					} else {
+						w.errors = append(w.errors, data)
+					}
+
+					marshalled, err := json.Marshal(&executor.MonitorWriteOutputMessage{
+						Contents: data,
+						Errors:   w.errors,
+					})
+					if err != nil {
+						log.Print(errors.Wrap(err, "Failed to marshal output message"))
+						time.Sleep(time.Second)
+						// retry
+					} else {
+						return marshalled, nil
+					}
+				}
+			}
+		}
 	}
 
-	return json.Marshal(data)
+	// at this point stdout and stderr are closed, therefore read all errors and return them as one cumulated error
+	var cumulatedErrors error
+	for err := range w.errChannel {
+		cumulatedErrors = multierror.Append(cumulatedErrors, err)
+	}
+
+	return nil, errors.Wrap(cumulatedErrors, "Failed to read from monitor-write process")
 }
 
 // Write writes messages to the internal input channel if the input channel is
@@ -188,7 +315,10 @@ func (w *monitorWriteWidget) Write(data []byte) error {
 			return err
 		}
 
-		w.input <- inputMessage
+		_, err := w.stdinWriter.Write(append(inputMessage.Contents, "\n"...))
+		if err != nil {
+			return errors.Wrap(err, "Failed to write data to monitor-write process")
+		}
 	}
 
 	return nil
@@ -196,44 +326,20 @@ func (w *monitorWriteWidget) Write(data []byte) error {
 
 // Close closes the internal input and stop controlling channel. Afterwards,
 // it waits for the process to terminate.
-func (w *monitorWriteWidget) Close() {
-	if w.connectWrite {
-		close(w.input)
+func (w *monitorWriteWidget) Close() error {
+	w.runningMutex.Lock()
+	process := w.process
+	w.stopRequested = true
+	w.runningMutex.Unlock()
+
+	// this case is only skipped when Close is called after another Close and process termination
+	if process != nil {
+		if err := process.Process.Signal(syscall.SIGTERM); err != nil {
+			return errors.Wrap(err, "Failed to send signal to pseudo terminal process")
+		}
 	}
 
-	close(w.running)
 	w.stopWaiting.Wait()
-}
 
-func (w *monitorWriteWidget) storeAndSendContents(contents []byte) {
-	w.mutex.Lock()
-	defer w.mutex.Unlock()
-
-	if bytes.Compare(contents, w.contents) == 0 {
-		// nothing new to send
-		return
-	}
-
-	w.contents = contents
-
-	w.output <- executor.MonitorWriteOutputMessage{
-		Contents: w.contents,
-		Errors:   w.errors,
-	}
-}
-
-func (w *monitorWriteWidget) storeAndSendError(err []byte) {
-	w.mutex.Lock()
-	defer w.mutex.Unlock()
-
-	if len(w.errors) > 4 {
-		w.errors = append(w.errors[len(w.errors)-4:len(w.errors)], err)
-	} else {
-		w.errors = append(w.errors, err)
-	}
-
-	w.output <- executor.MonitorWriteOutputMessage{
-		Contents: w.contents,
-		Errors:   w.errors,
-	}
+	return nil
 }
