@@ -36,15 +36,18 @@ func NewExecutor(pages []parser.Page) (executor.Executor, error) {
 
 // StartPage creates a docker volume and starts all widget containers.
 func (e *Executor) StartPage(pageID id.PageID) error {
-	// TODO: define error types
 	pageURL, roomID, err := id.PageURLAndRoomIDFromPageID(pageID)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Failed to decode page ID \"%s\"", pageID)
 	}
 
 	page := parser.PageFromPageURL(e.pages, pageURL)
 	if page == nil {
-		return errors.Errorf("No page with URL %s", pageURL)
+		return errors.Errorf("No page with URL \"%s\"", pageURL)
+	}
+
+	if !page.IsInteractive {
+		return errors.Errorf("Page \"%s\" is not interactive", pageURL)
 	}
 
 	// create volume
@@ -56,7 +59,7 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 
 	err = process.Start()
 	if err != nil {
-		return errors.Wrapf(err, "Failed to create volume for page %s", pageID)
+		return errors.Wrapf(err, "Failed to create volume for page \"%s\"", pageID)
 	}
 
 	process.Wait()
@@ -143,12 +146,16 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 func (e *Executor) StopPage(pageID id.PageID) error {
 	pageURL, roomID, err := id.PageURLAndRoomIDFromPageID(pageID)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Failed to decode page ID \"%s\"", pageID)
 	}
 
 	page := parser.PageFromPageURL(e.pages, pageURL)
 	if page == nil {
-		return errors.Errorf("No page with URL %s", pageURL)
+		return errors.Errorf("No page with URL \"%s\"", pageURL)
+	}
+
+	if !page.IsInteractive {
+		return errors.Errorf("Page \"%s\" is not interactive", pageURL)
 	}
 
 	e.widgetsMutex.Lock()
@@ -195,7 +202,7 @@ func (e *Executor) StopPage(pageID id.PageID) error {
 
 	err = process.Start()
 	if err != nil {
-		return errors.Wrapf(err, "Failed to remove volume for page %s", pageID)
+		return errors.Wrapf(err, "Failed to remove volume for page \"%s\"", pageID)
 	}
 
 	process.Wait()
@@ -209,7 +216,7 @@ func (e *Executor) Read(widgetID id.WidgetID) ([]byte, error) {
 	widget, ok := e.widgets[widgetID]
 	e.widgetsMutex.Unlock()
 	if !ok {
-		return nil, errors.Errorf("No widget with ID %s", widgetID)
+		return nil, errors.Wrapf(errors.Errorf("No widget with ID \"%s\"", widgetID), "Failed to read from widget \"%s\"", widgetID)
 	}
 
 	return widget.Read()
@@ -221,7 +228,7 @@ func (e *Executor) Write(widgetID id.WidgetID, data []byte) error {
 	widget, ok := e.widgets[widgetID]
 	e.widgetsMutex.Unlock()
 	if !ok {
-		return errors.Errorf("No widget with ID %s", widgetID)
+		return errors.Wrapf(errors.Errorf("No widget with ID \"%s\"", widgetID), "Failed to write to widget \"%s\"", widgetID)
 	}
 
 	return widget.Write(data)
