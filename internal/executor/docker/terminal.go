@@ -20,13 +20,14 @@ import (
 // terminalWidget represents one instance of a terminal widget running as
 // docker container. A terminal widget runs a process in a pseudo terminal. The
 // process gets restarted if it stops but should not have stopped.
-// Implementation errors are also passed to the output. The implementation
-// communicates via two channels.
 type terminalWidget struct {
 	stopWaiting   *sync.WaitGroup
-	input         chan executor.TerminalInputMessage
-	output        chan executor.TerminalOutputMessage
 	stopRequested bool
+
+	runningMutex    sync.Mutex
+	process         *exec.Cmd
+	pseudoTerminal  *os.File
+	sharedReadChunk []byte
 
 	mutex    sync.Mutex
 	contents []byte
@@ -47,123 +48,130 @@ func newTerminalWidget(widgetID id.WidgetID, widget *parser.TerminalWidget) (wid
 	containerName := fmt.Sprintf("containerized-playground-%s", id.EncodeWidgetID(widgetID))
 
 	w := &terminalWidget{
-		stopWaiting: &sync.WaitGroup{},
-		output:      make(chan executor.TerminalOutputMessage),
-		input:       make(chan executor.TerminalInputMessage),
+		stopWaiting:     &sync.WaitGroup{},
+		sharedReadChunk: make([]byte, 4096),
 	}
+
+	w.runningMutex.Lock()
 
 	go func() {
 		w.stopWaiting.Add(1)
+		defer w.stopWaiting.Done()
 	loop:
 		for {
-			done := make(chan struct{})
-			process := exec.Command("docker", "run", "--rm", "--interactive", "--tty", "--name", containerName, "--network=none", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), "--workdir", widget.WorkingDirectory, imageName, "/bin/bash")
-			pseudoTerminal, err := pty.Start(process)
+			w.process = exec.Command("docker", "run", "--rm", "--interactive", "--tty", "--name", containerName, "--network=none", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), "--workdir", widget.WorkingDirectory, imageName, "/bin/bash")
+			pseudoTerminal, err := pty.Start(w.process)
 			if err != nil {
-				w.output <- executor.TerminalOutputMessage{
-					Data: []byte(err.Error() + "\n"),
+				if w.stopRequested {
+					w.process = nil
+					w.pseudoTerminal = nil
+					// unlock to allow future reads and writes
+					w.runningMutex.Unlock()
+					break loop
+				} else {
+					// restarting process
+					time.Sleep(time.Second)
+					continue
 				}
-				time.Sleep(time.Second)
-				continue
 			}
+			w.pseudoTerminal = pseudoTerminal
+			w.runningMutex.Unlock()
 
-			go func() {
-				for {
-					select {
-					case message, ok := <-w.input:
-						if !ok {
-							// at this point: process is still running but input closed (this must have happened from outside via Close())
-							// therefore: stop process
-							w.stopRequested = true
-							if err := process.Process.Signal(syscall.SIGTERM); err != nil {
-								w.output <- executor.TerminalOutputMessage{
-									Data: []byte(err.Error() + "\n"),
-								}
-							}
+			w.process.Wait()
+			w.pseudoTerminal.Close()
 
-							return
-						}
-
-						_, err := pseudoTerminal.Write(message.Data)
-						if err != nil {
-							w.output <- executor.TerminalOutputMessage{
-								Data: []byte(err.Error() + "\n"),
-							}
-						}
-					case <-done:
-						return
-					}
-				}
-			}()
-
-			go func() {
-				defer pseudoTerminal.Close()
-
-				chunk := make([]byte, 4096)
-
-				for {
-					n, err := pseudoTerminal.Read(chunk)
-					if err != nil {
-						if err == io.EOF || errors.Is(err, os.ErrClosed) {
-							return
-						}
-
-						w.output <- executor.TerminalOutputMessage{
-							Data: []byte(err.Error() + "\n"),
-						}
-						time.Sleep(time.Second)
-						continue
-					}
-
-					w.output <- executor.TerminalOutputMessage{
-						Data: chunk[:n],
-					}
-				}
-			}()
-
-			process.Wait()
-			close(done)
+			w.runningMutex.Lock()
 
 			if w.stopRequested {
+				w.process = nil
+				w.pseudoTerminal = nil
+				// unlock to allow future reads and writes
+				w.runningMutex.Unlock()
 				break loop
 			} else {
 				// restarting process
 				time.Sleep(time.Second)
 			}
 		}
-
-		close(w.output)
-		w.stopWaiting.Done()
 	}()
 
 	return w, nil
 }
 
-// Read returns messages from the internal output channel.
+// Read returns messages from the running pseudo terminal process.
 func (w *terminalWidget) Read() ([]byte, error) {
-	data, ok := <-w.output
-	if !ok {
-		return nil, io.EOF
+	sharedReadChunkLength := 0
+	for {
+		w.runningMutex.Lock()
+		pseudoTerminal := w.pseudoTerminal
+		w.runningMutex.Unlock()
+
+		if pseudoTerminal == nil {
+			// this case only happens when Read is called after Close and process termination
+			return nil, io.EOF
+		}
+
+		n, err := pseudoTerminal.Read(w.sharedReadChunk)
+		if err != nil {
+			if err == io.EOF || errors.Is(err, os.ErrClosed) {
+				continue
+			}
+
+			return nil, errors.Wrap(err, "Failed to read from pseudo terminal process")
+		}
+		sharedReadChunkLength = n
+
+		break
 	}
 
-	return json.Marshal(data)
+	data, err := json.Marshal(&executor.TerminalOutputMessage{
+		Data: w.sharedReadChunk[:sharedReadChunkLength],
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to marshal output message")
+	}
+
+	return data, nil
 }
 
-// Write writes messages to the internal input channel.
+// Write writes messages to the running pseudo terminal process.
 func (w *terminalWidget) Write(data []byte) error {
 	var inputMessage executor.TerminalInputMessage
 	if err := json.Unmarshal(data, &inputMessage); err != nil {
-		return err
+		return errors.Wrap(err, "Failed to unmarshal input message")
 	}
 
-	w.input <- inputMessage
+	w.runningMutex.Lock()
+	pseudoTerminal := w.pseudoTerminal
+	w.runningMutex.Unlock()
+
+	// this case is only skipped when Write is called after Close and process termination
+	if pseudoTerminal != nil {
+		_, err := pseudoTerminal.Write(inputMessage.Data)
+		if err != nil {
+			return errors.Wrap(err, "Failed to write data to pseudo terminal")
+		}
+	}
 
 	return nil
 }
 
-// Close closes the internal input channel. Afterwards, it waits for the
+// Close closes the running pseudo terminal process. Afterwards, it waits for the
 // process to terminate.
-func (w *terminalWidget) Close() {
-	close(w.input)
+func (w *terminalWidget) Close() error {
+	w.runningMutex.Lock()
+	process := w.process
+	w.stopRequested = true
+	w.runningMutex.Unlock()
+
+	// this case is only skipped when Close is called after another Close and process termination
+	if process != nil {
+		if err := process.Process.Signal(syscall.SIGTERM); err != nil {
+			return errors.Wrap(err, "Failed to send signal to pseudo terminal process")
+		}
+	}
+
 	w.stopWaiting.Wait()
+
+	return nil
 }
