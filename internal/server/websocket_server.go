@@ -112,6 +112,7 @@ func NewWebSocketServer(pages []parser.Page, multiplexer *multiplexer.Multiplexe
 
 		connection, err := server.upgrader.Upgrade(w, r, nil)
 		if err != nil {
+			log.Print(err) // there is no error channel to the client, just log it
 			return
 		}
 
@@ -126,8 +127,7 @@ func NewWebSocketServer(pages []parser.Page, multiplexer *multiplexer.Multiplexe
 		client.closeWaiting.Add(1)
 
 		if err := server.multiplexer.Attach(pageID, &client); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
+			log.Print(err) // there is no error channel to the client, just log it
 		}
 
 		client.closeWaiting.Wait()
@@ -169,7 +169,7 @@ func (c *webSocketClient) Read() (id.WidgetID, []byte, error) {
 
 	if unmarshalledMessage.WidgetIndex < 0 || int(unmarshalledMessage.WidgetIndex) >= c.numberOfPages {
 		c.closeWaiting.Done()
-		return "", nil, errors.Errorf("Widget index %d at page %s is out of range", unmarshalledMessage.WidgetIndex, c.pageID)
+		return "", nil, errors.Errorf("Widget index %d at page \"%s\" is out of range", unmarshalledMessage.WidgetIndex, c.pageID)
 	}
 
 	widgetID, err := id.WidgetIDFromPageURLAndRoomIDAndWidgetIndex(c.pageURL, c.roomID, unmarshalledMessage.WidgetIndex)
@@ -188,7 +188,7 @@ func (c *webSocketClient) Write(widgetID id.WidgetID, data []byte) error {
 	}
 
 	if pageURL != c.pageURL || roomID != c.roomID {
-		return errors.Errorf("Widget ID %s of message to send to client is invalid", widgetID)
+		return errors.Errorf("Widget ID \"%s\" of message to send to client is invalid", widgetID)
 	}
 
 	if err := c.connection.WriteJSON(&webSocketMessage{
