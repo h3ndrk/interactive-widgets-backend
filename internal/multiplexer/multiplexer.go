@@ -8,6 +8,7 @@ import (
 	"github.com/h3ndrk/containerized-playground/internal/executor"
 	"github.com/h3ndrk/containerized-playground/internal/id"
 	"github.com/h3ndrk/containerized-playground/internal/parser"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 )
 
@@ -51,16 +52,16 @@ func NewMultiplexer(pages []parser.Page, executor executor.Executor) (*Multiplex
 func (m *Multiplexer) Attach(pageID id.PageID, client Client) error {
 	pageURL, roomID, err := id.PageURLAndRoomIDFromPageID(pageID)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Failed to decode page ID \"%s\"", pageID)
 	}
 
 	page := parser.PageFromPageURL(m.pages, pageURL)
 	if page == nil {
-		return errors.Errorf("No page with URL %s", pageURL)
+		return errors.Errorf("No page with URL \"%s\"", pageURL)
 	}
 
 	if !page.IsInteractive {
-		return errors.Errorf("Page %s is not interactive", pageURL)
+		return errors.Errorf("Page \"%s\" is not interactive", pageURL)
 	}
 
 	// First, blockingly lock this page (this prevents concurrent instantiation
@@ -80,23 +81,44 @@ func (m *Multiplexer) Attach(pageID id.PageID, client Client) error {
 	attachedClients, ok := m.startedPages[pageID]
 	if !ok {
 		if err := m.executor.StartPage(pageID); err != nil {
-			return nil
+			return errors.Wrapf(err, "Failed to start page \"%s\"", err)
 		}
 
 		// stores the zero value (no attached clients) in the started pages
 		m.startedPages[pageID] = attachedClients
 
 		// connect all widgets of the page to mux channel
+		widgetIDs := map[id.WidgetIndex]id.WidgetID{}
 		for widgetIndex, widget := range page.Widgets {
 			if !widget.IsInteractive() {
 				continue
 			}
 
+			var cumulatedErrors error
 			widgetID, err := id.WidgetIDFromPageURLAndRoomIDAndWidgetIndex(pageURL, roomID, id.WidgetIndex(widgetIndex))
 			if err != nil {
-				// TODO: handle error (remove partially created widget readers), if we reach this code, this is a bug. the error should be handled in executor.StartPage
-				return err
+				cumulatedErrors = multierror.Append(cumulatedErrors, errors.Wrapf(err, "Failed to encode widget ID for page \"%s\"", pageID))
+
+				if err := m.executor.StopPage(pageID); err != nil {
+					cumulatedErrors = multierror.Append(cumulatedErrors, errors.Wrapf(err, "Failed to stop page \"%s\"", pageID))
+					// continue to remove it
+				}
+
+				// remove page
+				delete(m.startedPages, pageID)
+
+				return cumulatedErrors
 			}
+
+			widgetIDs[id.WidgetIndex(widgetIndex)] = widgetID
+		}
+
+		for widgetIndex, widget := range page.Widgets {
+			if !widget.IsInteractive() {
+				continue
+			}
+
+			widgetID := widgetIDs[id.WidgetIndex(widgetIndex)]
 
 			go func(widget *parser.Widget, widgetID id.WidgetID) {
 				for {
@@ -106,7 +128,7 @@ func (m *Multiplexer) Attach(pageID id.PageID, client Client) error {
 							return
 						}
 
-						log.Print(err)
+						log.Print(err) // there is no error channel to the clients, just log it
 						return
 					}
 
@@ -120,8 +142,7 @@ func (m *Multiplexer) Attach(pageID id.PageID, client Client) error {
 							defer writeWaiting.Done()
 
 							if err := attachedClients[clientIndex].Write(widgetID, data); err != nil {
-								log.Print(err)
-								// TODO: better error handling
+								log.Print(err) // there is no error channel to the clients, just log it
 							}
 						}(clientIndex, &writeWaiting)
 					}
@@ -158,9 +179,8 @@ func (m *Multiplexer) Attach(pageID id.PageID, client Client) error {
 				defer m.startedPagesMutex.Unlock()
 
 				if err := m.executor.StopPage(pageID); err != nil {
-					log.Print(err)
+					log.Print(err) // there is no error channel to the clients, just log it
 					// continue to remove it
-					// TODO: make error handling better
 				}
 
 				// remove page
@@ -175,14 +195,12 @@ func (m *Multiplexer) Attach(pageID id.PageID, client Client) error {
 					return
 				}
 
-				// TODO: make error handling better
-				log.Print(err)
+				log.Print(err) // there is no error channel to the clients, just log it
 				return
 			}
 
 			if err := m.executor.Write(widgetID, data); err != nil {
-				// TODO: make error handling better
-				log.Print(err)
+				log.Print(err) // there is no error channel to the clients, just log it
 				continue
 			}
 		}
