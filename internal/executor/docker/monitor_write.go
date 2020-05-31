@@ -22,9 +22,7 @@ import (
 // monitorWriteWidget represents one instance of a monitor-write widget (i.e.
 // a widget that can monitor a file and can write to it) running as docker
 // container. The process gets restarted if it stops but should not have
-// stopped. Implementation errors are also passed to the output. The
-// implementation communicates via three channels (input, output, stop
-// controlling).
+// stopped.
 type monitorWriteWidget struct {
 	stopWaiting   *sync.WaitGroup
 	stopRequested bool
@@ -189,7 +187,7 @@ func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool)
 	return w, nil
 }
 
-// Read returns messages from the internal output channel.
+// Read returns messages from the running monitor-write process.
 func (w *monitorWriteWidget) Read() ([]byte, error) {
 	stdoutCloseDetected := false
 	stderrCloseDetected := false
@@ -301,7 +299,7 @@ func (w *monitorWriteWidget) Read() ([]byte, error) {
 	return nil, errors.Wrap(cumulatedErrors, "Failed to read from monitor-write process")
 }
 
-// Write writes messages to the internal input channel if the input channel is
+// Write writes messages to the running monitor-write process if stdin is
 // connected.
 func (w *monitorWriteWidget) Write(data []byte) error {
 	if w.connectWrite {
@@ -319,8 +317,8 @@ func (w *monitorWriteWidget) Write(data []byte) error {
 	return nil
 }
 
-// Close closes the internal input and stop controlling channel. Afterwards,
-// it waits for the process to terminate.
+// Close stops the running monitor-write process. Afterwards, it waits for the
+// process to terminate.
 func (w *monitorWriteWidget) Close() error {
 	w.runningMutex.Lock()
 	process := w.process
