@@ -15,7 +15,7 @@ import (
 type widgetStream interface {
 	Read() ([]byte, error)
 	Write([]byte) error
-	Close()
+	Close() error
 }
 
 // Executor implements the executor.Executor interface.
