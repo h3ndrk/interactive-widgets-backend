@@ -20,20 +20,12 @@ type Multiplexer struct {
 
 	startedPagesMutex sync.Mutex
 	startedPagesLocks pageLock
-	startedPages      map[id.PageID]startedPage
+	startedPages      map[id.PageID][]Client
 }
 
 type message struct {
 	WidgetID id.WidgetID
 	Data     []byte
-}
-
-type startedPage struct {
-	attachedClients []Client
-	// toWidget is a mux channel from all attached clients to the widgets of the page (n:1)
-	toWidget chan message
-	// toClients is a mux channel from all widgets of the page to clients (n:1)
-	toClients chan message
 }
 
 // NewMultiplexer creates a new multiplexer based on an executor and the
@@ -46,7 +38,7 @@ func NewMultiplexer(pages []parser.Page, executor executor.Executor) (*Multiplex
 		startedPagesLocks: pageLock{
 			pageLocks: map[id.PageID]*sync.Mutex{},
 		},
-		startedPages: map[id.PageID]startedPage{},
+		startedPages: map[id.PageID][]Client{},
 	}, nil
 }
 
@@ -85,20 +77,16 @@ func (m *Multiplexer) Attach(pageID id.PageID, client Client) error {
 	// map of started pages is in progress. We can now modify the map of
 	// started pages and can safely add clients to the current page (will be
 	// added to an started page, not to a page that is currently in teardown).
-	pageInstance, ok := m.startedPages[pageID]
+	attachedClients, ok := m.startedPages[pageID]
 	if !ok {
 		if err := m.executor.StartPage(pageID); err != nil {
 			return nil
 		}
 
-		pageInstance = startedPage{
-			toWidget:  make(chan message),
-			toClients: make(chan message),
-		}
-		m.startedPages[pageID] = pageInstance
+		// stores the zero value (no attached clients) in the started pages
+		m.startedPages[pageID] = attachedClients
 
 		// connect all widgets of the page to mux channel
-		var fromPageCloseWaiting sync.WaitGroup
 		for widgetIndex, widget := range page.Widgets {
 			if !widget.IsInteractive() {
 				continue
@@ -110,10 +98,7 @@ func (m *Multiplexer) Attach(pageID id.PageID, client Client) error {
 				return err
 			}
 
-			fromPageCloseWaiting.Add(1)
-			go func(widget *parser.Widget, widgetID id.WidgetID, fromPageCloseWaiting *sync.WaitGroup) {
-				defer fromPageCloseWaiting.Done()
-
+			go func(widget *parser.Widget, widgetID id.WidgetID) {
 				for {
 					data, err := m.executor.Read(widgetID)
 					if err != nil {
@@ -125,97 +110,61 @@ func (m *Multiplexer) Attach(pageID id.PageID, client Client) error {
 						return
 					}
 
-					pageInstance.toClients <- message{
-						WidgetID: widgetID,
-						Data:     data,
+					// lock page to allow safe access of attached clients
+					m.startedPagesLocks.lock(pageID)
+
+					var writeWaiting sync.WaitGroup
+					writeWaiting.Add(len(attachedClients))
+					for clientIndex := range attachedClients {
+						go func(clientIndex int, writeWaiting *sync.WaitGroup) {
+							defer writeWaiting.Done()
+
+							if err := attachedClients[clientIndex].Write(widgetID, data); err != nil {
+								log.Print(err)
+								// TODO: better error handling
+							}
+						}(clientIndex, &writeWaiting)
 					}
+
+					m.startedPagesLocks.unlock(pageID)
+
+					writeWaiting.Wait()
 				}
-			}(&page.Widgets[widgetIndex], widgetID, &fromPageCloseWaiting)
+			}(&page.Widgets[widgetIndex], widgetID)
 		}
-
-		// this goroutine closes the mux channel once all widgets closed
-		go func() {
-			fromPageCloseWaiting.Wait()
-			close(pageInstance.toClients)
-		}()
-
-		// this goroutine sends all messages from widgets to all attached clients
-		go func() {
-			for message := range pageInstance.toClients {
-				// lock page to allow safe access of attached clients
-				m.startedPagesLocks.lock(pageID)
-				defer m.startedPagesLocks.unlock(pageID)
-
-				var writeWaiting sync.WaitGroup
-				writeWaiting.Add(len(pageInstance.attachedClients))
-				for clientIndex := range pageInstance.attachedClients {
-					go func(clientIndex int, writeWaiting *sync.WaitGroup) {
-						defer writeWaiting.Done()
-
-						if err := pageInstance.attachedClients[clientIndex].Write(message.WidgetID, message.Data); err != nil {
-							log.Print(err)
-							// TODO: better error handling
-						}
-					}(clientIndex, &writeWaiting)
-				}
-
-				writeWaiting.Wait()
-			}
-		}()
-
-		// this goroutine sends messages to the widgets in the executor
-		go func() {
-			for message := range pageInstance.toWidget {
-				if err := m.executor.Write(message.WidgetID, message.Data); err != nil {
-					log.Print(err)
-					continue
-				}
-			}
-
-			// at this point the channel closed while having the lock of the page, therefore ensure it is released at the end
-			defer m.startedPagesLocks.unlock(pageID)
-
-			// this lock will not introduce any deadlock, since we currently have the lock of this page (correct locking order)
-			m.startedPagesMutex.Lock()
-			defer m.startedPagesMutex.Unlock()
-
-			// the reader of this page should only close if there are no observer writers left
-			if len(pageInstance.attachedClients) > 0 {
-				panic("Bug: An instantiated page which is currently in teardown cannot have any attached client.")
-			}
-
-			if err := m.executor.StopPage(pageID); err != nil {
-				log.Print(err)
-				// continue to remove it
-				// TODO: make error handling better
-			}
-
-			// remove page
-			delete(m.startedPages, pageID)
-		}()
 	}
 
-	pageInstance.attachedClients = append(pageInstance.attachedClients, client)
+	attachedClients = append(attachedClients, client)
 
 	go func() {
 		defer func() {
 			m.startedPagesLocks.lock(pageID)
+			defer m.startedPagesLocks.unlock(pageID)
 
 			// detach client
 			n := 0
-			for _, c := range pageInstance.attachedClients {
+			for _, c := range attachedClients {
 				if c != client {
-					pageInstance.attachedClients[n] = c
+					attachedClients[n] = c
 					n++
 				}
 			}
-			pageInstance.attachedClients = pageInstance.attachedClients[:n]
+			attachedClients = attachedClients[:n]
 
-			// if last client closed, close page (keep page lock locked, will be unlocked once the page reader closes), else unlock page lock
-			if len(pageInstance.attachedClients) == 0 {
-				close(pageInstance.toWidget)
-			} else {
-				m.startedPagesLocks.unlock(pageID)
+			// if last client closed, close page
+			if len(attachedClients) == 0 {
+				// this lock will not introduce any deadlock, since we currently have the lock of this page (correct locking order)
+				m.startedPagesMutex.Lock()
+				defer m.startedPagesMutex.Unlock()
+
+				if err := m.executor.StopPage(pageID); err != nil {
+					log.Print(err)
+					// continue to remove it
+					// TODO: make error handling better
+				}
+
+				// remove page
+				delete(m.startedPages, pageID)
 			}
 		}()
 
@@ -226,13 +175,15 @@ func (m *Multiplexer) Attach(pageID id.PageID, client Client) error {
 					return
 				}
 
+				// TODO: make error handling better
 				log.Print(err)
 				return
 			}
 
-			pageInstance.toWidget <- message{
-				WidgetID: widgetID,
-				Data:     data,
+			if err := m.executor.Write(widgetID, data); err != nil {
+				// TODO: make error handling better
+				log.Print(err)
+				continue
 			}
 		}
 	}()
