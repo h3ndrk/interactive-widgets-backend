@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"sync"
@@ -158,6 +159,11 @@ func (c *webSocketClient) Read() (id.WidgetID, []byte, error) {
 	_, message, err := c.connection.ReadMessage()
 	if err != nil {
 		c.closeWaiting.Done()
+
+		if errors.Is(err, websocket.ErrCloseSent) {
+			return "", nil, io.EOF
+		}
+
 		return "", nil, err
 	}
 
