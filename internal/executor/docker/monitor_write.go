@@ -26,10 +26,8 @@ import (
 // implementation communicates via three channels (input, output, stop
 // controlling).
 type monitorWriteWidget struct {
-	running       chan struct{}
 	stopWaiting   *sync.WaitGroup
 	stopRequested bool
-	output        chan executor.MonitorWriteOutputMessage
 	connectWrite  bool
 
 	runningMutex  sync.Mutex
@@ -39,7 +37,6 @@ type monitorWriteWidget struct {
 	stderrChannel chan []byte
 	errChannel    chan error
 
-	mutex    sync.Mutex
 	contents []byte
 	errors   [][]byte
 }
@@ -57,9 +54,7 @@ func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool)
 	containerName := fmt.Sprintf("containerized-playground-%s", id.EncodeWidgetID(widgetID))
 
 	w := &monitorWriteWidget{
-		running:      make(chan struct{}),
 		stopWaiting:  &sync.WaitGroup{},
-		output:       make(chan executor.MonitorWriteOutputMessage),
 		connectWrite: connectWrite,
 
 		stdoutChannel: make(chan []byte),
