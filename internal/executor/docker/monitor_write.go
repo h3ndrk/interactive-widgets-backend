@@ -64,7 +64,6 @@ func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool)
 
 	go func() {
 		w.stopWaiting.Add(1)
-		defer w.stopWaiting.Done()
 
 		defer close(w.stdoutChannel)
 		defer close(w.stderrChannel)
@@ -227,7 +226,7 @@ func (w *monitorWriteWidget) Read() ([]byte, error) {
 					}
 
 					marshalled, err := json.Marshal(&executor.MonitorWriteOutputMessage{
-						Contents: data,
+						Contents: w.contents,
 						Errors:   w.errors,
 					})
 					if err != nil {
@@ -275,7 +274,7 @@ func (w *monitorWriteWidget) Read() ([]byte, error) {
 					}
 
 					marshalled, err := json.Marshal(&executor.MonitorWriteOutputMessage{
-						Contents: data,
+						Contents: w.contents,
 						Errors:   w.errors,
 					})
 					if err != nil {
@@ -290,13 +289,19 @@ func (w *monitorWriteWidget) Read() ([]byte, error) {
 		}
 	}
 
-	// at this point stdout and stderr are closed, therefore read all errors and return them as one cumulated error
+	// at this point stdout and stderr are closed, therefore finish stopWaiting wait group
+	defer w.stopWaiting.Done()
+
+	// read all errors and return them as one cumulated error
 	var cumulatedErrors error
 	for err := range w.errChannel {
 		cumulatedErrors = multierror.Append(cumulatedErrors, err)
 	}
+	if cumulatedErrors != nil {
+		return nil, errors.Wrap(cumulatedErrors, "Failed to read from monitor-write process")
+	}
 
-	return nil, errors.Wrap(cumulatedErrors, "Failed to read from monitor-write process")
+	return nil, io.EOF
 }
 
 // Write writes messages to the running monitor-write process if stdin is
