@@ -12,13 +12,13 @@ import (
 	"github.com/h3ndrk/containerized-playground/internal/executor"
 	"github.com/h3ndrk/containerized-playground/internal/id"
 	"github.com/h3ndrk/containerized-playground/internal/parser"
+	"github.com/pkg/errors"
 )
 
 // buttonWidget represents one instance of a button widget which can be invoked
 // by a click. The click runs a defined command as docker container. Multiple
 // clicks while a process is running are discarded (at most one process runs
-// in parallel). Implementation errors are not passed to the output. The
-// implementation communicates via one channel.
+// in parallel).
 type buttonWidget struct {
 	stopWaiting *sync.WaitGroup
 	output      chan executor.ButtonOutputMessage
@@ -138,17 +138,14 @@ func (w *buttonWidget) Write(data []byte) error {
 // sending SIGTERM to a running process. The output channel (from which Read
 // reads) is closed either immediatly or after process termination. Afterwards,
 // it waits for the process to terminate.
-func (w *buttonWidget) Close() {
+func (w *buttonWidget) Close() error {
 	w.mutex.Lock()
 
 	w.stopRequested = true
 
 	if w.process != nil {
 		if err := w.process.Process.Signal(syscall.SIGTERM); err != nil {
-			w.output <- executor.ButtonOutputMessage{
-				Origin: executor.StderrStream,
-				Data:   []byte(err.Error()),
-			}
+			return errors.Wrap(err, "Failed to send signal to button process")
 		}
 	} else {
 		close(w.output)
@@ -157,4 +154,6 @@ func (w *buttonWidget) Close() {
 	w.mutex.Unlock()
 
 	w.stopWaiting.Wait()
+
+	return nil
 }
