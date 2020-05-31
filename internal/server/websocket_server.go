@@ -160,7 +160,7 @@ func (c *webSocketClient) Read() (id.WidgetID, []byte, error) {
 	if err != nil {
 		c.closeWaiting.Done()
 
-		if errors.Is(err, websocket.ErrCloseSent) {
+		if _, ok := err.(*websocket.CloseError); ok {
 			return "", nil, io.EOF
 		}
 
