@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"sync"
@@ -62,6 +63,7 @@ func newTerminalWidget(widgetID id.WidgetID, widget *parser.TerminalWidget) (wid
 			w.process = exec.Command("docker", "run", "--rm", "--interactive", "--tty", "--name", containerName, "--network=none", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), "--workdir", widget.WorkingDirectory, imageName, "/bin/bash")
 			pseudoTerminal, err := pty.Start(w.process)
 			if err != nil {
+				log.Print(errors.Wrap(err, "Failed to start pseudo terminal process"))
 				if w.stopRequested {
 					w.process = nil
 					w.pseudoTerminal = nil
@@ -149,7 +151,7 @@ func (w *terminalWidget) Write(data []byte) error {
 	if pseudoTerminal != nil {
 		_, err := pseudoTerminal.Write(inputMessage.Data)
 		if err != nil {
-			return errors.Wrap(err, "Failed to write data to pseudo terminal")
+			return errors.Wrap(err, "Failed to write data to pseudo terminal process")
 		}
 	}
 
