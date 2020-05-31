@@ -158,10 +158,7 @@ func (e *Executor) StopPage(pageID id.PageID) error {
 		return errors.Errorf("Page \"%s\" is not interactive", pageURL)
 	}
 
-	e.widgetsMutex.Lock()
-	defer e.widgetsMutex.Unlock()
-
-	// close all widgets and remove them
+	// close all widgets
 	var closeWaiting sync.WaitGroup
 	for widgetIndex, widget := range page.Widgets {
 		if !widget.IsInteractive() {
@@ -180,6 +177,11 @@ func (e *Executor) StopPage(pageID id.PageID) error {
 		}(e.widgets[widgetID], &closeWaiting)
 	}
 	closeWaiting.Wait()
+
+	e.widgetsMutex.Lock()
+	defer e.widgetsMutex.Unlock()
+
+	// remove all widgets
 	for widgetIndex, widget := range page.Widgets {
 		if !widget.IsInteractive() {
 			continue
