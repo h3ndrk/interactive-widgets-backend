@@ -216,7 +216,7 @@ func (e *Executor) Read(widgetID id.WidgetID) ([]byte, error) {
 	widget, ok := e.widgets[widgetID]
 	e.widgetsMutex.Unlock()
 	if !ok {
-		return nil, errors.Wrapf(errors.Errorf("No widget with ID \"%s\"", widgetID), "Failed to read from widget \"%s\"", widgetID)
+		return nil, errors.Wrapf(errors.Errorf("No widget with ID existing", widgetID), "Failed to read from widget \"%s\"", widgetID)
 	}
 
 	return widget.Read()
@@ -228,7 +228,7 @@ func (e *Executor) Write(widgetID id.WidgetID, data []byte) error {
 	widget, ok := e.widgets[widgetID]
 	e.widgetsMutex.Unlock()
 	if !ok {
-		return errors.Wrapf(errors.Errorf("No widget with ID \"%s\"", widgetID), "Failed to write to widget \"%s\"", widgetID)
+		return errors.Wrapf(errors.Errorf("No widget with ID existing", widgetID), "Failed to write to widget \"%s\"", widgetID)
 	}
 
 	return widget.Write(data)
