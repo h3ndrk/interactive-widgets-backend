@@ -25,6 +25,8 @@ type Multiplexer struct {
 	pages    []parser.Page
 
 	attachRequestChannel chan attachRequest
+	shutdownWaiting      *sync.WaitGroup
+	shutdownChannel      chan struct{}
 }
 
 type message struct {
@@ -40,10 +42,14 @@ type detachRequest struct {
 // NewMultiplexer creates a new multiplexer based on an executor and the
 // available pages.
 func NewMultiplexer(pages []parser.Page, executor executor.Executor) (*Multiplexer, error) {
-	// TODO: add context to all New*() functions to be able to tear down the whole process
-
 	attachRequestChannel := make(chan attachRequest)
-	go func() {
+	var shutdownWaiting sync.WaitGroup
+	shutdownWaiting.Add(1)
+	shutdownChannel := make(chan struct{})
+
+	go func(shutdownWaiting *sync.WaitGroup) {
+		defer shutdownWaiting.Done()
+
 		startedPages := map[id.PageID][]Client{}
 		readFromClientsChannel := make(chan message)
 		readFromWidgetsChannel := make(chan message)
@@ -195,14 +201,22 @@ func NewMultiplexer(pages []parser.Page, executor executor.Executor) (*Multiplex
 
 					delete(startedPages, request.pageID)
 				}
+			case <-shutdownChannel:
+				if len(startedPages) > 0 {
+					log.Print("Bug: Multiplexer termination request while pages are running.")
+				}
+
+				return
 			}
 		}
-	}()
+	}(&shutdownWaiting)
 
 	return &Multiplexer{
 		executor:             executor,
 		pages:                pages,
 		attachRequestChannel: attachRequestChannel,
+		shutdownWaiting:      &shutdownWaiting,
+		shutdownChannel:      shutdownChannel,
 	}, nil
 }
 
@@ -252,4 +266,10 @@ func (m *Multiplexer) Attach(pageID id.PageID, client Client) error {
 	}
 
 	return nil
+}
+
+// Shutdown terminates the multiplexer and waits for termination.
+func (m *Multiplexer) Shutdown() {
+	close(m.shutdownChannel)
+	m.shutdownWaiting.Wait()
 }

@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/h3ndrk/containerized-playground/internal/id"
@@ -23,15 +24,20 @@ type WebSocketServer struct {
 
 	mux      *http.ServeMux
 	upgrader websocket.Upgrader
+
+	shutdownWaiting *sync.WaitGroup
+	shutdownChannel chan struct{}
 }
 
 // NewWebSocketServer creates a new websocket server which serves the given
 // pages metadata/widgets and allows attaching to the given multiplexer.
 func NewWebSocketServer(pages []parser.Page, multiplexer *multiplexer.Multiplexer) (Server, error) {
 	server := &WebSocketServer{
-		pages:       pages,
-		multiplexer: multiplexer,
-		mux:         http.NewServeMux(),
+		pages:           pages,
+		multiplexer:     multiplexer,
+		mux:             http.NewServeMux(),
+		shutdownWaiting: &sync.WaitGroup{},
+		shutdownChannel: make(chan struct{}),
 	}
 
 	// serve list of pages with their metadata
@@ -74,6 +80,9 @@ func NewWebSocketServer(pages []parser.Page, multiplexer *multiplexer.Multiplexe
 
 	// serve attachment endpoint which upgrades to a websocket connection
 	server.mux.HandleFunc("/page/attach", func(w http.ResponseWriter, r *http.Request) {
+		server.shutdownWaiting.Add(1)
+		defer server.shutdownWaiting.Done()
+
 		pageURLQueryParam, ok := r.URL.Query()["page_url"]
 		if !ok || len(pageURLQueryParam) < 1 {
 			w.WriteHeader(http.StatusBadRequest)
@@ -128,11 +137,25 @@ func NewWebSocketServer(pages []parser.Page, multiplexer *multiplexer.Multiplexe
 		}
 		client.closeWaiting.Add(1)
 
+		clientCloseChannel := make(chan struct{})
+		go func() {
+			select {
+			case <-server.shutdownChannel:
+				client.writeMutex.Lock()
+				defer client.writeMutex.Unlock()
+				connection.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "shutdown"))
+				time.Sleep(time.Second)
+				connection.Close()
+			case <-clientCloseChannel:
+			}
+		}()
+
 		if err := server.multiplexer.Attach(pageID, &client); err != nil {
 			log.Print(err) // there is no error channel to the client, just log it
 		}
 
 		client.closeWaiting.Wait()
+		close(clientCloseChannel)
 	})
 
 	return server, nil
@@ -140,6 +163,14 @@ func NewWebSocketServer(pages []parser.Page, multiplexer *multiplexer.Multiplexe
 
 func (s *WebSocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
+}
+
+func (s *WebSocketServer) Shutdown() {
+	close(s.shutdownChannel)
+}
+
+func (s *WebSocketServer) Wait() {
+	s.shutdownWaiting.Wait()
 }
 
 type webSocketMessage struct {

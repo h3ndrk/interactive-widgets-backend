@@ -1,8 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 
 	"github.com/h3ndrk/containerized-playground/internal/executor/docker"
 	"github.com/h3ndrk/containerized-playground/internal/multiplexer"
@@ -27,12 +32,36 @@ func main() {
 		log.Fatal(err)
 	}
 
-	server, err := server.NewWebSocketServer(pages, multiplexer)
+	webSocketServer, err := server.NewWebSocketServer(pages, multiplexer)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := http.ListenAndServe(":8080", server); err != nil {
+	httpServer := &http.Server{
+		Addr:    ":8080",
+		Handler: webSocketServer,
+	}
+	httpServer.RegisterOnShutdown(webSocketServer.Shutdown)
+
+	var shutdownWaiting sync.WaitGroup
+	shutdownWaiting.Add(1)
+	go func(shutdownWaiting *sync.WaitGroup) {
+		defer shutdownWaiting.Done()
+
+		signals := make(chan os.Signal, 1)
+		signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+		log.Printf("Got %s", <-signals)
+
+		if err := httpServer.Shutdown(context.Background()); err != nil {
+			log.Fatal(err)
+		}
+	}(&shutdownWaiting)
+
+	if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
+
+	webSocketServer.Wait()
+	shutdownWaiting.Wait()
+	multiplexer.Shutdown()
 }
