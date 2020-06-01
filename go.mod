@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/creack/pty v1.1.11
+	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/pkg/errors v0.9.1
