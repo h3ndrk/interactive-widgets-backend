@@ -28,7 +28,7 @@ type PageMetadata struct {
 type Page struct {
 	PageMetadata
 	Widgets    []Widget `json:"widgets"`
-	ImagePaths []string `json:"imagePaths"`
+	ImagePaths []string `json:"-"`
 }
 
 type Widget interface {
