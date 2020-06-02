@@ -20,7 +20,7 @@ func PageFromPageURL(pages []Page, pageURL id.PageURL) *Page {
 
 type PageMetadata struct {
 	IsInteractive bool       `json:"isInteractive"`
-	BasePath      string     `json:"basePath"`
+	BasePath      string     `json:"-"`
 	URL           id.PageURL `json:"url"`
 }
 
