@@ -88,6 +88,7 @@ func parsePage(pagePath string) (string, []Widget, []string, error) {
 	document := md.Parser().Parse(reader)
 
 	var title string
+	var titleEnd int
 	var widgetsWithSlice []widgetWithSlice
 	var imagePaths []string
 	for block := document.FirstChild(); block != nil; block = block.NextSibling() {
@@ -99,7 +100,14 @@ func parsePage(pagePath string) (string, []Widget, []string, error) {
 				return "", nil, nil, errors.New("First markdown block is not a level 1 heading")
 			}
 
+			lines := block.Lines()
+			if lines.Len() == 0 {
+				return "", nil, nil, errors.New("First markdown block has no lines")
+			}
+
 			title = string(block.Text(contents))
+			titleEnd = lines.At(lines.Len() - 1).Stop
+
 			continue
 		}
 
@@ -117,12 +125,12 @@ func parsePage(pagePath string) (string, []Widget, []string, error) {
 	if len(widgetsWithSlice) == 0 {
 		return title, []Widget{
 			MarkdownWidget{
-				Contents: string(contents),
+				Contents: string(bytes.TrimSpace(contents[titleEnd:])),
 			},
 		}, imagePaths, nil
 	}
 
-	return title, fillGaps(contents, widgetsWithSlice), imagePaths, nil
+	return title, fillGaps(contents, widgetsWithSlice, titleEnd), imagePaths, nil
 }
 
 type widgetWithSlice struct {
@@ -247,11 +255,11 @@ func processBlock(contents []byte, block ast.Node) (*widgetWithSlice, error) {
 	}
 }
 
-func fillGaps(contents []byte, widgets []widgetWithSlice) []Widget {
+func fillGaps(contents []byte, widgets []widgetWithSlice, offset int) []Widget {
 	var widgetsWithoutGaps []Widget
 
 	// eventually add markdown widget to fill gap
-	trimmedGap := bytes.TrimSpace(contents[0:widgets[0].begin])
+	trimmedGap := bytes.TrimSpace(contents[offset:widgets[0].begin])
 	if len(trimmedGap) > 0 {
 		widgetsWithoutGaps = append(widgetsWithoutGaps, MarkdownWidget{
 			Contents: string(trimmedGap),
