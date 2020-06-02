@@ -30,14 +30,14 @@ func (p *PageDirectoryParser) GetPages() ([]Page, error) {
 
 	err := filepath.Walk(p.pagesDirectory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return errors.Wrapf(err, "Failed to access path %s", path)
+			return errors.Wrapf(err, "Failed to access path \"%s\"", path)
 		}
 
 		if !info.IsDir() && info.Name() == "page.md" {
 			basePath := filepath.Dir(path)
 			relativeBasePath, err := filepath.Rel(p.pagesDirectory, basePath)
 			if err != nil {
-				return errors.Wrapf(err, "Failed to create relative base path of page %s", path)
+				return errors.Wrapf(err, "Failed to create relative base path of page \"%s\"", path)
 			}
 			url := filepath.Join(string(filepath.Separator), relativeBasePath)
 
@@ -47,13 +47,13 @@ func (p *PageDirectoryParser) GetPages() ([]Page, error) {
 			if err != nil {
 				dockerfileExists = false
 				if !os.IsNotExist(err) {
-					return errors.Wrapf(err, "Failed to access path %s", dockerfilePath)
+					return errors.Wrapf(err, "Failed to access path \"%s\"", dockerfilePath)
 				}
 			}
 
-			widgets, imagePaths, err := parsePage(path)
+			title, widgets, imagePaths, err := parsePage(path)
 			if err != nil {
-				return errors.Wrapf(err, "Failed to parse page %s", path)
+				return errors.Wrapf(err, "Failed to parse page \"%s\"", path)
 			}
 
 			readPages = append(readPages, Page{
@@ -61,6 +61,7 @@ func (p *PageDirectoryParser) GetPages() ([]Page, error) {
 					IsInteractive: dockerfileExists,
 					BasePath:      basePath,
 					URL:           id.PageURL(url),
+					Title:         title,
 				},
 				Widgets:    widgets,
 				ImagePaths: imagePaths,
@@ -70,28 +71,41 @@ func (p *PageDirectoryParser) GetPages() ([]Page, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to read pages in %s", p.pagesDirectory)
+		return nil, errors.Wrapf(err, "Failed to read pages in \"%s\"", p.pagesDirectory)
 	}
 
 	return readPages, nil
 }
 
-func parsePage(pagePath string) ([]Widget, []string, error) {
+func parsePage(pagePath string) (string, []Widget, []string, error) {
 	contents, err := ioutil.ReadFile(pagePath)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "Failed to read page %s", pagePath)
+		return "", nil, nil, errors.Wrapf(err, "Failed to read page \"%s\"", pagePath)
 	}
 
 	md := goldmark.New()
 	reader := text.NewReader(contents)
 	document := md.Parser().Parse(reader)
 
+	var title string
 	var widgetsWithSlice []widgetWithSlice
 	var imagePaths []string
 	for block := document.FirstChild(); block != nil; block = block.NextSibling() {
+		if block == document.FirstChild() {
+			if block.Kind() != ast.KindHeading {
+				return "", nil, nil, errors.New("First markdown block is not a heading")
+			}
+			if block.(*ast.Heading).Level != 1 {
+				return "", nil, nil, errors.New("First markdown block is not a level 1 heading")
+			}
+
+			title = string(block.Text(contents))
+			continue
+		}
+
 		widget, err := processBlock(contents, block)
 		if err != nil {
-			return nil, nil, err
+			return "", nil, nil, err
 		}
 		if widget != nil {
 			widgetsWithSlice = append(widgetsWithSlice, *widget)
@@ -101,14 +115,14 @@ func parsePage(pagePath string) ([]Widget, []string, error) {
 	}
 
 	if len(widgetsWithSlice) == 0 {
-		return []Widget{
+		return title, []Widget{
 			MarkdownWidget{
 				Contents: string(contents),
 			},
 		}, imagePaths, nil
 	}
 
-	return fillGaps(contents, widgetsWithSlice), imagePaths, nil
+	return title, fillGaps(contents, widgetsWithSlice), imagePaths, nil
 }
 
 type widgetWithSlice struct {
@@ -130,7 +144,7 @@ func processBlock(contents []byte, block ast.Node) (*widgetWithSlice, error) {
 	blockContent := contents[blockStart:blockStop]
 	parsedBlock, err := html.Parse(bytes.NewReader(blockContent))
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to parse HTML: %s", blockContent)
+		return nil, errors.Wrapf(err, "Failed to parse HTML: \"%s\"", blockContent)
 	}
 	if parsedBlock.Type != html.DocumentNode {
 		return nil, nil
@@ -166,7 +180,7 @@ func processBlock(contents []byte, block ast.Node) (*widgetWithSlice, error) {
 	switch interactiveElement.Data[2:] {
 	case "text":
 		if _, ok := attributes["file"]; !ok {
-			return nil, errors.Wrapf(err, "Missing \"file\" attribute in text widget: %s", blockContent)
+			return nil, errors.Wrapf(err, "Missing \"file\" attribute in text widget: \"%s\"", blockContent)
 		}
 
 		return &widgetWithSlice{
@@ -178,7 +192,7 @@ func processBlock(contents []byte, block ast.Node) (*widgetWithSlice, error) {
 		}, nil
 	case "image":
 		if _, ok := attributes["file"]; !ok {
-			return nil, errors.Wrapf(err, "Missing \"file\" attribute in image widget: %s", blockContent)
+			return nil, errors.Wrapf(err, "Missing \"file\" attribute in image widget: \"%s\"", blockContent)
 		}
 
 		return &widgetWithSlice{
@@ -190,10 +204,10 @@ func processBlock(contents []byte, block ast.Node) (*widgetWithSlice, error) {
 		}, nil
 	case "button":
 		if _, ok := attributes["command"]; !ok {
-			return nil, errors.Wrapf(err, "Missing \"command\" attribute in button widget: %s", blockContent)
+			return nil, errors.Wrapf(err, "Missing \"command\" attribute in button widget: \"%s\"", blockContent)
 		}
 		if interactiveElement.FirstChild == nil || interactiveElement.FirstChild.Type != html.TextNode {
-			return nil, errors.Wrapf(err, "Missing label in button widget: %s", blockContent)
+			return nil, errors.Wrapf(err, "Missing label in button widget: \"%s\"", blockContent)
 		}
 
 		return &widgetWithSlice{
@@ -206,7 +220,7 @@ func processBlock(contents []byte, block ast.Node) (*widgetWithSlice, error) {
 		}, nil
 	case "editor":
 		if _, ok := attributes["file"]; !ok {
-			return nil, errors.Wrapf(err, "Missing \"file\" attribute in editor widget: %s", blockContent)
+			return nil, errors.Wrapf(err, "Missing \"file\" attribute in editor widget: \"%s\"", blockContent)
 		}
 
 		return &widgetWithSlice{
@@ -218,7 +232,7 @@ func processBlock(contents []byte, block ast.Node) (*widgetWithSlice, error) {
 		}, nil
 	case "terminal":
 		if _, ok := attributes["working-directory"]; !ok {
-			return nil, errors.Wrapf(err, "Missing \"working-directory\" attribute in terminal widget: %s", blockContent)
+			return nil, errors.Wrapf(err, "Missing \"working-directory\" attribute in terminal widget: \"%s\"", blockContent)
 		}
 
 		return &widgetWithSlice{
@@ -229,7 +243,7 @@ func processBlock(contents []byte, block ast.Node) (*widgetWithSlice, error) {
 			end:   blockStop,
 		}, nil
 	default:
-		return nil, errors.Wrapf(err, "Unknown widget: %s", blockContent)
+		return nil, errors.Wrapf(err, "Unknown widget: \"%s\"", blockContent)
 	}
 }
 

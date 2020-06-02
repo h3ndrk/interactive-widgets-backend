@@ -22,6 +22,7 @@ type PageMetadata struct {
 	IsInteractive bool       `json:"isInteractive"`
 	BasePath      string     `json:"-"`
 	URL           id.PageURL `json:"url"`
+	Title         string     `json:"title"`
 }
 
 type Page struct {
