@@ -36,6 +36,7 @@ type Widget interface {
 }
 
 type MarkdownWidget struct {
+	Type     string `json:"type"`
 	Contents string `json:"contents"`
 }
 
@@ -44,6 +45,7 @@ func (MarkdownWidget) IsInteractive() bool {
 }
 
 type TextWidget struct {
+	Type string `json:"type"`
 	File string `json:"file"`
 }
 
@@ -52,6 +54,7 @@ func (TextWidget) IsInteractive() bool {
 }
 
 type ImageWidget struct {
+	Type string `json:"type"`
 	File string `json:"file"`
 }
 
@@ -60,6 +63,7 @@ func (ImageWidget) IsInteractive() bool {
 }
 
 type ButtonWidget struct {
+	Type    string `json:"type"`
 	Label   string `json:"label"`
 	Command string `json:"command"`
 }
@@ -69,6 +73,7 @@ func (ButtonWidget) IsInteractive() bool {
 }
 
 type EditorWidget struct {
+	Type string `json:"type"`
 	File string `json:"file"`
 }
 
@@ -77,6 +82,7 @@ func (EditorWidget) IsInteractive() bool {
 }
 
 type TerminalWidget struct {
+	Type             string `json:"type"`
 	WorkingDirectory string `json:"workingDirectory"`
 }
 

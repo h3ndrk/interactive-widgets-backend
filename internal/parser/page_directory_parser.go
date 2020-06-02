@@ -125,6 +125,7 @@ func parsePage(pagePath string) (string, []Widget, []string, error) {
 	if len(widgetsWithSlice) == 0 {
 		return title, []Widget{
 			MarkdownWidget{
+				Type:     "markdown",
 				Contents: string(bytes.TrimSpace(contents[titleEnd:])),
 			},
 		}, imagePaths, nil
@@ -193,6 +194,7 @@ func processBlock(contents []byte, block ast.Node) (*widgetWithSlice, error) {
 
 		return &widgetWithSlice{
 			widget: &TextWidget{
+				Type: interactiveElement.Data[2:],
 				File: attributes["file"],
 			},
 			begin: blockStart,
@@ -205,6 +207,7 @@ func processBlock(contents []byte, block ast.Node) (*widgetWithSlice, error) {
 
 		return &widgetWithSlice{
 			widget: &ImageWidget{
+				Type: interactiveElement.Data[2:],
 				File: attributes["file"],
 			},
 			begin: blockStart,
@@ -220,6 +223,7 @@ func processBlock(contents []byte, block ast.Node) (*widgetWithSlice, error) {
 
 		return &widgetWithSlice{
 			widget: &ButtonWidget{
+				Type:    interactiveElement.Data[2:],
 				Label:   interactiveElement.FirstChild.Data,
 				Command: attributes["command"],
 			},
@@ -233,6 +237,7 @@ func processBlock(contents []byte, block ast.Node) (*widgetWithSlice, error) {
 
 		return &widgetWithSlice{
 			widget: &EditorWidget{
+				Type: interactiveElement.Data[2:],
 				File: attributes["file"],
 			},
 			begin: blockStart,
@@ -245,6 +250,7 @@ func processBlock(contents []byte, block ast.Node) (*widgetWithSlice, error) {
 
 		return &widgetWithSlice{
 			widget: &TerminalWidget{
+				Type:             interactiveElement.Data[2:],
 				WorkingDirectory: attributes["working-directory"],
 			},
 			begin: blockStart,
@@ -262,6 +268,7 @@ func fillGaps(contents []byte, widgets []widgetWithSlice, offset int) []Widget {
 	trimmedGap := bytes.TrimSpace(contents[offset:widgets[0].begin])
 	if len(trimmedGap) > 0 {
 		widgetsWithoutGaps = append(widgetsWithoutGaps, MarkdownWidget{
+			Type:     "markdown",
 			Contents: string(trimmedGap),
 		})
 	}
@@ -277,6 +284,7 @@ func fillGaps(contents []byte, widgets []widgetWithSlice, offset int) []Widget {
 		trimmedGap := bytes.TrimSpace(contents[widget.end:gapEnd])
 		if len(trimmedGap) > 0 {
 			widgetsWithoutGaps = append(widgetsWithoutGaps, MarkdownWidget{
+				Type:     "markdown",
 				Contents: string(trimmedGap),
 			})
 		}
