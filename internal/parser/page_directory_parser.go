@@ -204,11 +204,15 @@ func processBlock(contents []byte, block ast.Node) (*widgetWithSlice, error) {
 		if _, ok := attributes["file"]; !ok {
 			return nil, errors.Wrapf(err, "Missing \"file\" attribute in image widget: \"%s\"", blockContent)
 		}
+		if _, ok := attributes["mime"]; !ok {
+			return nil, errors.Wrapf(err, "Missing \"mime\" attribute in image widget: \"%s\"", blockContent)
+		}
 
 		return &widgetWithSlice{
 			widget: &ImageWidget{
 				Type: interactiveElement.Data[2:],
 				File: attributes["file"],
+				MIME: attributes["mime"],
 			},
 			begin: blockStart,
 			end:   blockStop,

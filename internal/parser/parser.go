@@ -56,6 +56,7 @@ func (TextWidget) IsInteractive() bool {
 type ImageWidget struct {
 	Type string `json:"type"`
 	File string `json:"file"`
+	MIME string `json:"mime"`
 }
 
 func (ImageWidget) IsInteractive() bool {
