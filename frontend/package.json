@@ -1,15 +1,25 @@
 {
   "name": "frontend",
+  "description": "Interactive Markdown pages backed by containers",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/h3ndrk/containerized-playground.git"
+  },
+  "license": "MIT",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.5.0",
     "@testing-library/user-event": "^7.2.1",
+    "path-browserify": "^1.0.1",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
+    "react-markdown": "^4.3.1",
+    "react-router-dom": "^5.2.0",
     "react-scripts": "3.4.1",
-    "socket.io-client": "^2.3.0"
+    "uuid": "^8.1.0",
+    "xterm": "^4.6.0"
   },
   "scripts": {
     "start": "react-scripts start",
