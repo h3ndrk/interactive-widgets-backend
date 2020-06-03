@@ -154,6 +154,23 @@ func NewWebSocketServer(pages []parser.Page, multiplexer *multiplexer.Multiplexe
 			}
 		}()
 
+		go func() {
+			ticker := time.NewTicker(30 * time.Second)
+			defer ticker.Stop()
+
+			for {
+				select {
+				case <-ticker.C:
+					if err := connection.WriteMessage(websocket.PingMessage, nil); err != nil {
+						log.Print(err)
+						return
+					}
+				case <-clientCloseChannel:
+					return
+				}
+			}
+		}()
+
 		if err := server.multiplexer.Attach(pageID, &client); err != nil {
 			log.Print(err) // there is no error channel to the client, just log it
 		}
