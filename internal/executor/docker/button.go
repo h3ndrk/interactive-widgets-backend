@@ -22,6 +22,7 @@ import (
 type buttonWidget struct {
 	stopWaiting *sync.WaitGroup
 	output      chan executor.ButtonOutputMessage
+	clear       chan executor.ButtonClearMessage
 
 	widgetID id.WidgetID
 	command  string
@@ -35,6 +36,7 @@ func newButtonWidget(widgetID id.WidgetID, widget *parser.ButtonWidget) (widgetS
 	return &buttonWidget{
 		stopWaiting: &sync.WaitGroup{},
 		output:      make(chan executor.ButtonOutputMessage),
+		clear:       make(chan executor.ButtonClearMessage),
 		widgetID:    widgetID,
 		command:     widget.Command,
 	}, nil
@@ -42,12 +44,20 @@ func newButtonWidget(widgetID id.WidgetID, widget *parser.ButtonWidget) (widgetS
 
 // Read returns messages from the internal output channel.
 func (w *buttonWidget) Read() ([]byte, error) {
-	data, ok := <-w.output
-	if !ok {
-		return nil, io.EOF
-	}
+	select {
+	case data, ok := <-w.output:
+		if !ok {
+			return nil, io.EOF
+		}
 
-	return json.Marshal(data)
+		return json.Marshal(data)
+	case data, ok := <-w.output:
+		if !ok {
+			return nil, io.EOF
+		}
+
+		return json.Marshal(data)
+	}
 }
 
 // Write parses the given message and initiates a button click by starting the defined process.
@@ -98,6 +108,10 @@ func (w *buttonWidget) Write(data []byte) error {
 			return err
 		}
 
+		w.clear <- executor.ButtonClearMessage{
+			Clear: true,
+		}
+
 		go func() {
 			for stdoutScanner.Scan() {
 				w.output <- executor.ButtonOutputMessage{
@@ -126,6 +140,7 @@ func (w *buttonWidget) Write(data []byte) error {
 			w.process = nil
 			if w.stopRequested {
 				close(w.output)
+				close(w.clear)
 			}
 		}()
 
@@ -149,6 +164,7 @@ func (w *buttonWidget) Close() error {
 		}
 	} else {
 		close(w.output)
+		close(w.clear)
 	}
 
 	w.mutex.Unlock()

@@ -38,6 +38,11 @@ type ButtonOutputMessage struct {
 	Data   []byte       `json:"data"`
 }
 
+// ButtonClearMessage gets send from a button widget to the client.
+type ButtonClearMessage struct {
+	Clear bool `json:"clear"`
+}
+
 // TerminalInputMessage gets send from the client to a terminal widget.
 type TerminalInputMessage struct {
 	Data []byte `json:"data"`
