@@ -1,10 +1,15 @@
 package executor
 
-// MonitorWriteOutputMessage gets send from a monitor-write widget to the
+// MonitorWriteContentsMessage gets send from a monitor-write widget to the
 // client.
-type MonitorWriteOutputMessage struct {
-	Contents []byte   `json:"contents"`
-	Errors   [][]byte `json:"errors"`
+type MonitorWriteContentsMessage struct {
+	Contents []byte `json:"contents"`
+}
+
+// MonitorWriteErrorMessage gets send from a monitor-write widget to the
+// client.
+type MonitorWriteErrorMessage struct {
+	Error []byte `json:"error"`
 }
 
 // MonitorWriteInputMessage gets send from the client to a monitor-write

@@ -30,4 +30,9 @@ type Executor interface {
 	// It is safe to call this function with same widget ID arguments from
 	// different goroutines.
 	Write(id.WidgetID, []byte) error
+
+	// GetCurrentState retrieves the current state from the given widget. It is
+	// safe to call this function with same widget ID arguments from different
+	// goroutines.
+	GetCurrentState(id.WidgetID) ([]byte, error)
 }

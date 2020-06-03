@@ -57,21 +57,21 @@ func NewMultiplexer(pages []parser.Page, executor executor.Executor) (*Multiplex
 		for {
 			select {
 			case request := <-attachRequestChannel:
+				pageURL, roomID, err := id.PageURLAndRoomIDFromPageID(request.pageID)
+				if err != nil {
+					request.errChannel <- errors.Wrapf(err, "Failed to decode page ID \"%s\"", request.pageID)
+					close(request.errChannel)
+					break
+				}
+
+				page := parser.PageFromPageURL(pages, pageURL)
+				if page == nil {
+					request.errChannel <- errors.Errorf("No page with URL \"%s\"", pageURL)
+					close(request.errChannel)
+					break
+				}
+
 				if _, ok := startedPages[request.pageID]; !ok {
-					pageURL, roomID, err := id.PageURLAndRoomIDFromPageID(request.pageID)
-					if err != nil {
-						request.errChannel <- errors.Wrapf(err, "Failed to decode page ID \"%s\"", request.pageID)
-						close(request.errChannel)
-						break
-					}
-
-					page := parser.PageFromPageURL(pages, pageURL)
-					if page == nil {
-						request.errChannel <- errors.Errorf("No page with URL \"%s\"", pageURL)
-						close(request.errChannel)
-						break
-					}
-
 					if !page.IsInteractive {
 						request.errChannel <- errors.Errorf("Page \"%s\" is not interactive", pageURL)
 						close(request.errChannel)
@@ -130,6 +130,40 @@ func NewMultiplexer(pages []parser.Page, executor executor.Executor) (*Multiplex
 								}
 							}
 						}(&page.Widgets[widgetIndex], widgetID)
+					}
+				} else {
+					// attaching to already started, get current state of all widgets and send it to attaching client
+					gotError := false
+					for widgetIndex, widget := range page.Widgets {
+						if !widget.IsInteractive() {
+							continue
+						}
+
+						widgetID, err := id.WidgetIDFromPageURLAndRoomIDAndWidgetIndex(pageURL, roomID, id.WidgetIndex(widgetIndex))
+						if err != nil {
+							request.errChannel <- errors.Wrapf(err, "Failed to encode widget ID for page \"%s\"", request.pageID)
+							close(request.errChannel)
+							gotError = true
+							break
+						}
+
+						data, err := executor.GetCurrentState(widgetID)
+						if err != nil {
+							request.errChannel <- errors.Wrapf(err, "Failed to get current state of widget \"%s\" for page \"%s\"", widgetID, request.pageID)
+							close(request.errChannel)
+							gotError = true
+							break
+						}
+
+						if err := request.client.Write(widgetID, data); err != nil {
+							request.errChannel <- errors.Wrapf(err, "Failed to send current state to client for page \"%s\"", request.pageID)
+							close(request.errChannel)
+							gotError = true
+							break
+						}
+					}
+					if gotError {
+						break
 					}
 				}
 

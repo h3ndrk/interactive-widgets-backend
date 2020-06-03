@@ -16,6 +16,7 @@ type widgetStream interface {
 	Read() ([]byte, error)
 	Write([]byte) error
 	Close() error
+	GetCurrentState() ([]byte, error)
 }
 
 // Executor implements the executor.Executor interface.
@@ -234,4 +235,17 @@ func (e *Executor) Write(widgetID id.WidgetID, data []byte) error {
 	}
 
 	return widget.Write(data)
+}
+
+// GetCurrentState retrieves the current state from the widget with given
+// widget ID.
+func (e *Executor) GetCurrentState(widgetID id.WidgetID) ([]byte, error) {
+	e.widgetsMutex.Lock()
+	widget, ok := e.widgets[widgetID]
+	e.widgetsMutex.Unlock()
+	if !ok {
+		return nil, errors.Wrapf(errors.New("No widget with ID existing"), "Failed to get current state from widget \"%s\"", widgetID)
+	}
+
+	return widget.GetCurrentState()
 }

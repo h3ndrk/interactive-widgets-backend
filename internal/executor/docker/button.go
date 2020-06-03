@@ -157,3 +157,8 @@ func (w *buttonWidget) Close() error {
 
 	return nil
 }
+
+// GetCurrentState always returns an empty JSON object (there is no state).
+func (w *buttonWidget) GetCurrentState() ([]byte, error) {
+	return []byte("{}"), nil
+}

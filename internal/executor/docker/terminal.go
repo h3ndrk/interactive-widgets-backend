@@ -177,3 +177,8 @@ func (w *terminalWidget) Close() error {
 
 	return nil
 }
+
+// GetCurrentState always returns an empty JSON object (there is no state).
+func (w *terminalWidget) GetCurrentState() ([]byte, error) {
+	return []byte("{}"), nil
+}

@@ -35,8 +35,9 @@ type monitorWriteWidget struct {
 	stderrChannel chan []byte
 	errChannel    chan error
 
-	contents []byte
-	errors   [][]byte
+	stateMutex sync.Mutex
+	contents   []byte
+	lastError  []byte
 }
 
 func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool) (widgetStream, error) {
@@ -199,43 +200,51 @@ func (w *monitorWriteWidget) Read() ([]byte, error) {
 				if !ok {
 					stdoutCloseDetected = true
 				} else {
+					w.stateMutex.Lock()
+
 					if bytes.Compare(data, w.contents) != 0 {
 						w.contents = data
 
-						marshalled, err := json.Marshal(&executor.MonitorWriteOutputMessage{
+						marshalled, err := json.Marshal(&executor.MonitorWriteContentsMessage{
 							Contents: data,
-							Errors:   w.errors,
 						})
 						if err != nil {
-							log.Print(errors.Wrap(err, "Failed to marshal output message"))
+							log.Print(errors.Wrap(err, "Failed to marshal contents message"))
 							time.Sleep(time.Second)
 							// retry
 						} else {
+							w.stateMutex.Unlock()
+
 							return marshalled, nil
 						}
 					}
+
+					w.stateMutex.Unlock()
 				}
 			case data, ok := <-w.stderrChannel:
 				if !ok {
 					stderrCloseDetected = true
 				} else {
-					if len(w.errors) > 4 {
-						w.errors = append(w.errors[len(w.errors)-4:len(w.errors)], data)
-					} else {
-						w.errors = append(w.errors, data)
+					w.stateMutex.Lock()
+
+					if bytes.Compare(data, w.lastError) != 0 {
+						w.lastError = data
+
+						marshalled, err := json.Marshal(&executor.MonitorWriteErrorMessage{
+							Error: data,
+						})
+						if err != nil {
+							log.Print(errors.Wrap(err, "Failed to marshal error message"))
+							time.Sleep(time.Second)
+							// retry
+						} else {
+							w.stateMutex.Unlock()
+
+							return marshalled, nil
+						}
 					}
 
-					marshalled, err := json.Marshal(&executor.MonitorWriteOutputMessage{
-						Contents: w.contents,
-						Errors:   w.errors,
-					})
-					if err != nil {
-						log.Print(errors.Wrap(err, "Failed to marshal output message"))
-						time.Sleep(time.Second)
-						// retry
-					} else {
-						return marshalled, nil
-					}
+					w.stateMutex.Unlock()
 				}
 			}
 		} else if !stdoutCloseDetected && stderrCloseDetected {
@@ -244,21 +253,27 @@ func (w *monitorWriteWidget) Read() ([]byte, error) {
 				if !ok {
 					stdoutCloseDetected = true
 				} else {
+					w.stateMutex.Lock()
+
 					if bytes.Compare(data, w.contents) != 0 {
 						w.contents = data
+						w.lastError = nil
 
-						marshalled, err := json.Marshal(&executor.MonitorWriteOutputMessage{
+						marshalled, err := json.Marshal(&executor.MonitorWriteContentsMessage{
 							Contents: data,
-							Errors:   w.errors,
 						})
 						if err != nil {
-							log.Print(errors.Wrap(err, "Failed to marshal output message"))
+							log.Print(errors.Wrap(err, "Failed to marshal contents message"))
 							time.Sleep(time.Second)
 							// retry
 						} else {
+							w.stateMutex.Unlock()
+
 							return marshalled, nil
 						}
 					}
+
+					w.stateMutex.Unlock()
 				}
 			}
 		} else if stdoutCloseDetected && !stderrCloseDetected {
@@ -267,23 +282,26 @@ func (w *monitorWriteWidget) Read() ([]byte, error) {
 				if !ok {
 					stderrCloseDetected = true
 				} else {
-					if len(w.errors) > 4 {
-						w.errors = append(w.errors[len(w.errors)-4:len(w.errors)], data)
-					} else {
-						w.errors = append(w.errors, data)
+					w.stateMutex.Lock()
+
+					if bytes.Compare(data, w.lastError) != 0 {
+						w.lastError = data
+
+						marshalled, err := json.Marshal(&executor.MonitorWriteErrorMessage{
+							Error: data,
+						})
+						if err != nil {
+							log.Print(errors.Wrap(err, "Failed to marshal error message"))
+							time.Sleep(time.Second)
+							// retry
+						} else {
+							w.stateMutex.Unlock()
+
+							return marshalled, nil
+						}
 					}
 
-					marshalled, err := json.Marshal(&executor.MonitorWriteOutputMessage{
-						Contents: w.contents,
-						Errors:   w.errors,
-					})
-					if err != nil {
-						log.Print(errors.Wrap(err, "Failed to marshal output message"))
-						time.Sleep(time.Second)
-						// retry
-					} else {
-						return marshalled, nil
-					}
+					w.stateMutex.Unlock()
 				}
 			}
 		}
@@ -340,4 +358,30 @@ func (w *monitorWriteWidget) Close() error {
 	w.stopWaiting.Wait()
 
 	return nil
+}
+
+// GetCurrentState returns an empty JSON object (there is no state).
+func (w *monitorWriteWidget) GetCurrentState() ([]byte, error) {
+	w.stateMutex.Lock()
+	defer w.stateMutex.Unlock()
+
+	if w.lastError == nil {
+		marshalled, err := json.Marshal(&executor.MonitorWriteContentsMessage{
+			Contents: w.contents,
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to marshal contents message")
+		}
+
+		return marshalled, nil
+	}
+
+	marshalled, err := json.Marshal(&executor.MonitorWriteErrorMessage{
+		Error: w.lastError,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to marshal contents message")
+	}
+
+	return marshalled, nil
 }
