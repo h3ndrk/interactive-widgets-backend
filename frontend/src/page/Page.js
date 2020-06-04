@@ -37,7 +37,7 @@ export default function Page(props) {
   }, [props.page.url]);
 
   return (
-    <div>
+    <>
       <div className="centered title">{page.title}</div>
       <div className="centered">
         <div className="navigation">
@@ -67,6 +67,6 @@ export default function Page(props) {
       {widgets !== null && page.isInteractive &&
         <InteractivePage page={page} widgets={widgets} />
       }
-    </div>
+    </>
   );
 }
