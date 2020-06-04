@@ -72,7 +72,7 @@ func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool)
 		defer w.runningMutex.Unlock()
 	loop:
 		for {
-			w.process = exec.Command("docker", "run", "--rm", "--name", containerName, "--network=none", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), "containerized-playground-monitor-write", file)
+			w.process = exec.Command("docker", "run", "--rm", "--interactive", "--name", containerName, "--network=none", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), "containerized-playground-monitor-write", file)
 
 			stdinWriter, err := w.process.StdinPipe()
 			if err != nil {
@@ -336,9 +336,17 @@ func (w *monitorWriteWidget) Write(data []byte) error {
 			return err
 		}
 
-		_, err := w.stdinWriter.Write(append(inputMessage.Contents, "\n"...))
+		encoder := base64.NewEncoder(base64.StdEncoding, w.stdinWriter)
+		if _, err := encoder.Write(inputMessage.Contents); err != nil {
+			return errors.Wrap(err, "Failed to write data to monitor-write process (write)")
+		}
+		if err := encoder.Close(); err != nil {
+			return errors.Wrap(err, "Failed to write data to monitor-write process (close)")
+		}
+
+		_, err := w.stdinWriter.Write([]byte("\n"))
 		if err != nil {
-			return errors.Wrap(err, "Failed to write data to monitor-write process")
+			return errors.Wrap(err, "Failed to write data to monitor-write process (newline)")
 		}
 	}
 
