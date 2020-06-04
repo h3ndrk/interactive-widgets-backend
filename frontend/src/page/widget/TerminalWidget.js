@@ -7,16 +7,22 @@ export default class TerminalWidget extends React.Component {
     super(props, context);
     this.terminal = null;
     this.container = null;
+    this.state = {
+      title: 'Terminal',
+    };
   }
   
   componentDidMount() {
     this.terminal = new Terminal();
     this.terminal.open(this.container);
-    console.log('Initialize terminal ...');
     if (this.props.onData) {
-      console.log('Register handler ...');
       this.terminal.onData(this.props.onData);
     }
+    this.terminal.onTitleChange(title => {
+      this.setState({
+        title: title,
+      });
+    });
   }
   
   componentWillUnmount() {
@@ -35,7 +41,8 @@ export default class TerminalWidget extends React.Component {
   render() {
     return (
       <div className="centered terminal">
-        <div ref={ref => (this.container = ref)} className="" />
+        <div className="title">{this.state.title}</div>
+        <div ref={ref => (this.container = ref)} className="terminal" />
       </div>
     );
   }
