@@ -204,6 +204,16 @@ export default function InteractivePage(props) {
               <EditorWidget
                 key={`${props.page.url}/${i}`}
                 widget={widget}
+                onChange={value => {
+                  if (webSocket.current !== null) {
+                    webSocket.current.send(JSON.stringify({
+                      widgetIndex: i,
+                      data: {
+                        contents: btoa(value),
+                      },
+                    }));
+                  }
+                }}
               />
             );
           case 'terminal':
