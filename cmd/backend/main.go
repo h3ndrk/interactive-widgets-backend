@@ -2,10 +2,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
+	"runtime/debug"
+	"runtime/pprof"
 	"sync"
 	"syscall"
 
@@ -43,6 +47,16 @@ func main() {
 	}
 	httpServer.RegisterOnShutdown(webSocketServer.Shutdown)
 
+	dumpSignals := make(chan os.Signal, 1)
+	signal.Notify(dumpSignals, syscall.SIGUSR1)
+	go func() {
+		for range dumpSignals {
+			fmt.Fprintf(os.Stderr, "Current #goroutines: %d\n", runtime.NumGoroutine())
+			os.Stderr.Write(debug.Stack())
+			pprof.Lookup("goroutine").WriteTo(os.Stderr, 2)
+		}
+	}()
+
 	var shutdownWaiting sync.WaitGroup
 	shutdownWaiting.Add(1)
 	go func(shutdownWaiting *sync.WaitGroup) {
@@ -51,6 +65,9 @@ func main() {
 		signals := make(chan os.Signal, 1)
 		signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 		log.Printf("Got %s", <-signals)
+
+		signal.Stop(dumpSignals)
+		close(dumpSignals)
 
 		if err := httpServer.Shutdown(context.Background()); err != nil {
 			log.Fatal(err)
