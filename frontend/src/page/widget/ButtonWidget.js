@@ -4,9 +4,13 @@ export default function ButtonWidget(props) {
   return (
     <div className="centered button">
       <div className="command">{props.widget.command}</div>
-      <button className="button">{props.widget.label}</button>
+      <button className="button" onClick={() => {
+        if (props.onClick) {
+          props.onClick();
+        }
+      }}>{props.widget.label}</button>
       <div className="outputs">
-        {props.widget.outputs.map(output => <div className={output.origin}>{output.data}</div>)}
+        {props.widget.outputs.map((output, i) => <div className={output.origin} key={i}>{output.data}</div>)}
       </div>
     </div>
   );
