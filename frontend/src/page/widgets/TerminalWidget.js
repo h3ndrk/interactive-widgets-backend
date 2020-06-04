@@ -1,6 +1,6 @@
-import React, { /*useRef*/ } from 'react';
+import React from 'react';
 import { Terminal } from 'xterm';
-// import XTerm from 'react-xterm';
+import 'xterm/css/xterm.css';
 
 export default class TerminalWidget extends React.Component {
   constructor(props, context) {
@@ -16,7 +16,7 @@ export default class TerminalWidget extends React.Component {
   
   componentWillUnmount() {
     if (this.xterm) {
-      this.xterm.destroy();
+      this.xterm.dispose();
       this.xterm = null;
       if (this.props.onData) {
         this.xterm.on('data', data => this.props.onData(data));
