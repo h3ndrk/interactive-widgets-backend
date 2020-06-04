@@ -42,7 +42,7 @@ func newButtonWidget(widgetID id.WidgetID, widget *parser.ButtonWidget) (widgetS
 	}, nil
 }
 
-// Read returns messages from the internal output channel.
+// Read returns messages from the internal output or clear channel.
 func (w *buttonWidget) Read() ([]byte, error) {
 	select {
 	case data, ok := <-w.output:
@@ -51,7 +51,7 @@ func (w *buttonWidget) Read() ([]byte, error) {
 		}
 
 		return json.Marshal(data)
-	case data, ok := <-w.output:
+	case data, ok := <-w.clear:
 		if !ok {
 			return nil, io.EOF
 		}
