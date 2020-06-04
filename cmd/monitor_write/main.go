@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
@@ -28,9 +27,7 @@ func main() {
 		close(done)
 	}()
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
+	go func() {
 		scanner := bufio.NewScanner(os.Stdin)
 
 		for scanner.Scan() {
@@ -44,8 +41,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, errors.Wrap(err, "Error while reading stdin"))
 		}
 
-		wg.Done()
-	}(&wg)
+	}()
 
 	lastEncoded := ""
 	didOutputAtLeastOnce := false
@@ -98,6 +94,4 @@ loop:
 		default:
 		}
 	}
-
-	wg.Wait()
 }
