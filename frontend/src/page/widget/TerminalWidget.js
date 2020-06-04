@@ -5,28 +5,30 @@ import 'xterm/css/xterm.css';
 export default class TerminalWidget extends React.Component {
   constructor(props, context) {
     super(props, context);
-    this.xterm = null;
+    this.terminal = null;
     this.container = null;
   }
   
   componentDidMount() {
-    this.xterm = new Terminal();
-    this.xterm.open(this.container);
+    this.terminal = new Terminal();
+    this.terminal.open(this.container);
+    console.log('Initialize terminal ...');
+    if (this.props.onData) {
+      console.log('Register handler ...');
+      this.terminal.onData(this.props.onData);
+    }
   }
   
   componentWillUnmount() {
-    if (this.xterm) {
-      this.xterm.dispose();
-      this.xterm = null;
-      if (this.props.onData) {
-        this.xterm.on('data', data => this.props.onData(data));
-      }
+    if (this.terminal) {
+      this.terminal.dispose();
+      this.terminal = null;
     }
   }
   
   write(data) {
-    if (this.xterm) {
-      this.xterm.write(data);
+    if (this.terminal) {
+      this.terminal.write(data);
     }
   }
   
