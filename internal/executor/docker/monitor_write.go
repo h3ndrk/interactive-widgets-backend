@@ -204,6 +204,9 @@ func (w *monitorWriteWidget) Read() ([]byte, error) {
 
 					if bytes.Compare(data, w.contents) != 0 {
 						w.contents = data
+						if len(w.contents) > 0 {
+							w.lastError = nil
+						}
 
 						marshalled, err := json.Marshal(&executor.MonitorWriteContentsMessage{
 							Contents: data,
@@ -257,7 +260,9 @@ func (w *monitorWriteWidget) Read() ([]byte, error) {
 
 					if bytes.Compare(data, w.contents) != 0 {
 						w.contents = data
-						w.lastError = nil
+						if len(w.contents) > 0 {
+							w.lastError = nil
+						}
 
 						marshalled, err := json.Marshal(&executor.MonitorWriteContentsMessage{
 							Contents: data,

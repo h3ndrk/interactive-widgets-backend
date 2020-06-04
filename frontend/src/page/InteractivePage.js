@@ -62,20 +62,36 @@ export default function InteractivePage(props) {
 
           switch (widget.type) {
             case 'text': {
-              if (message.data.contents) {
-                return { ...widget, contents: atob(message.data.contents), error: null };
-              } else if (message.data.error) {
-                return { ...widget, contents: null, error: atob(message.data.error) };
+              if (message.data.contents !== undefined) {
+                if (message.data.contents.length > 0) {
+                  return { ...widget, contents: atob(message.data.contents) };
+                } else {
+                  return { ...widget, contents: null };
+                }
+              } else if (message.data.error !== undefined) {
+                if (message.data.error.length > 0) {
+                  return { ...widget, error: atob(message.data.error) };
+                } else {
+                  return { ...widget, error: null };
+                }
               }
 
               console.warn('Ignore message: TextWidget does not have handler implemented', event.data);
               return widget;
             }
             case 'image': {
-              if (message.data.contents) {
-                return { ...widget, contents: message.data.contents, error: null };
-              } else if (message.data.error) {
-                return { ...widget, contents: null, error: atob(message.data.error) };
+              if (message.data.contents !== undefined) {
+                if (message.data.contents.length > 0) {
+                  return { ...widget, contents: message.data.contents };
+                } else {
+                  return { ...widget, contents: null };
+                }
+              } else if (message.data.error !== undefined) {
+                if (message.data.error.length > 0) {
+                  return { ...widget, error: atob(message.data.error) };
+                } else {
+                  return { ...widget, error: null };
+                }
               }
 
               console.warn('Ignore message: ImageWidget does not have handler implemented', event.data);
@@ -101,10 +117,18 @@ export default function InteractivePage(props) {
               return widget;
             }
             case 'editor': {
-              if (message.data.contents) {
-                return { ...widget, contents: atob(message.data.contents), error: null };
-              } else if (message.data.error) {
-                return { ...widget, contents: null, error: atob(message.data.error) };
+              if (message.data.contents !== undefined) {
+                if (message.data.contents.length > 0) {
+                  return { ...widget, contents: atob(message.data.contents) };
+                } else {
+                  return { ...widget, contents: null };
+                }
+              } else if (message.data.error !== undefined) {
+                if (message.data.error.length > 0) {
+                  return { ...widget, error: atob(message.data.error) };
+                } else {
+                  return { ...widget, error: null };
+                }
               }
 
               console.warn('Ignore message: EditorWidget does not have handler implemented', event.data);
