@@ -85,7 +85,16 @@ export default function InteractivePage(props) {
               if (message.data.clear === true) {
                 return { ...widget, outputs: [] };
               } else if (message.data.origin && ['stdout', 'stderr'].includes(message.data.origin) && message.data.data) {
-                return { ...widget, outputs: [...widget.outputs, atob(message.data.data)] };
+                return {
+                  ...widget,
+                  outputs: [
+                    ...widget.outputs,
+                    {
+                      origin: message.data.origin,
+                      data: atob(message.data.data),
+                    }
+                  ],
+                };
               }
 
               console.warn('Ignore message: ButtonWidget does not have handler implemented', event.data);
@@ -116,9 +125,9 @@ export default function InteractivePage(props) {
     };
     
     return () => {
-      if (this.webSocket !== null) {
+      if (webSocket.current !== null) {
         console.log('Disconnecting from WebSocket ...');
-        this.webSocket.close();
+        webSocket.current.close();
       }
     };
   }, [props.page.url, roomID, props.widgets]);
@@ -128,15 +137,51 @@ export default function InteractivePage(props) {
       {widgets !== null && widgets.map((widget, i) => {
         switch (widget.type) {
           case 'markdown':
-            return (<MarkdownWidget key={`${props.page.url}/${i}`} widget={widget} />);
+            return (
+              <MarkdownWidget
+                key={`${props.page.url}/${i}`}
+                widget={widget}
+              />
+            );
           case 'text':
-            return (<TextWidget key={`${props.page.url}/${i}`} widget={widget} />);
+            return (
+              <TextWidget
+                key={`${props.page.url}/${i}`}
+                widget={widget}
+              />
+            );
           case 'image':
-            return (<ImageWidget key={`${props.page.url}/${i}`} widget={widget} />);
+            return (
+              <ImageWidget
+                key={`${props.page.url}/${i}`}
+                widget={widget}
+              />
+            );
           case 'button':
-            return (<ButtonWidget key={`${props.page.url}/${i}`} widget={widget} />);
+            return (
+              <ButtonWidget
+                key={`${props.page.url}/${i}`}
+                widget={widget}
+                onClick={() => {
+                  if (webSocket.current !== null) {
+                    console.log('click');
+                    webSocket.current.send(JSON.stringify({
+                      widgetIndex: i,
+                      data: {
+                        click: true,
+                      },
+                    }));
+                  }
+                }}
+              />
+            );
           case 'editor':
-            return (<EditorWidget key={`${props.page.url}/${i}`} widget={widget} />);
+            return (
+              <EditorWidget
+                key={`${props.page.url}/${i}`}
+                widget={widget}
+              />
+            );
           case 'terminal':
             return (
               <TerminalWidget
