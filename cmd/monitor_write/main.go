@@ -40,7 +40,6 @@ func main() {
 		if err := scanner.Err(); err != nil {
 			fmt.Fprintln(os.Stderr, errors.Wrap(err, "Error while reading stdin"))
 		}
-
 	}()
 
 	lastEncoded := ""
