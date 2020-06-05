@@ -2,8 +2,6 @@ package docker
 
 import (
 	"bufio"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -13,7 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/h3ndrk/containerized-playground/internal/executor"
 	"github.com/h3ndrk/containerized-playground/internal/id"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
@@ -186,22 +183,9 @@ func (w *monitorWriteWidget) Read() ([]byte, error) {
 // connected.
 func (w *monitorWriteWidget) Write(data []byte) error {
 	if w.connectWrite {
-		var inputMessage executor.MonitorWriteInputMessage
-		if err := json.Unmarshal(data, &inputMessage); err != nil {
-			return err
-		}
-
-		encoder := base64.NewEncoder(base64.StdEncoding, w.stdinWriter)
-		if _, err := encoder.Write(inputMessage.Contents); err != nil {
-			return errors.Wrap(err, "Failed to write data to monitor-write process (write)")
-		}
-		if err := encoder.Close(); err != nil {
-			return errors.Wrap(err, "Failed to write data to monitor-write process (close)")
-		}
-
-		_, err := w.stdinWriter.Write([]byte("\n"))
+		_, err := w.stdinWriter.Write(append(data, "\n"...))
 		if err != nil {
-			return errors.Wrap(err, "Failed to write data to monitor-write process (newline)")
+			return errors.Wrap(err, "Failed to write data to monitor-write process")
 		}
 	}
 
