@@ -9,6 +9,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+// jsonError represents an error while marshalling/unmarshalling JSON data
 // type jsonError struct {
 //     Type        string `json:"type"` // always "jsonError"
 //     ErrorReason string `json:"errorReason"`
