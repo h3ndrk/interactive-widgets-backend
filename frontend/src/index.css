@@ -1,5 +1,55 @@
-html, body {
+/* http://meyerweb.com/eric/tools/css/reset/ 
+   v2.0 | 20110126
+   License: none (public domain)
+*/
+
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed, 
+figure, figcaption, footer, header, hgroup, 
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
   margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 100%;
+  font: inherit;
+  vertical-align: baseline;
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure, 
+footer, header, hgroup, menu, nav, section {
+  display: block;
+}
+body {
+  line-height: 1;
+}
+ol, ul {
+  list-style: none;
+}
+blockquote, q {
+  quotes: none;
+}
+blockquote:before, blockquote:after,
+q:before, q:after {
+  content: '';
+  content: none;
+}
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+/* Custom rules: */
+
+html, body {
   font-family: Inter;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -18,6 +68,82 @@ html, body {
 .centered.markdown {
   margin-top: 1rem;
   margin-bottom: 1rem;
+}
+
+.centered.text {
+  padding: 1rem 0 2rem 0;
+}
+
+.centered.text .contents {
+  /* since .centered has 4vw margin it has (100vw - 8vw) width */
+  /* to get height for 4:3 ratio: 92vw / 4 * 3 = 43.578947368vw */
+  height: 43.578947368vw;
+  background-color: #eee;
+  border-radius: 0.5rem;
+  box-sizing: border-box;
+}
+
+.centered.text .contents.with-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.centered.text .contents.with-error .error {
+  display: grid;
+  grid-template-columns: 128px calc(92vw - 128px - 20vw - 4vw);
+  grid-template-rows: 1fr 1fr;
+  column-gap: 4vw;
+}
+
+.centered.text .contents.with-error .error img {
+  width: 128px;
+  height: 128px;
+  grid-column: 1 / 2;
+  grid-row: 1 / 3;
+}
+
+.centered.text .contents.with-error .error .title {
+  grid-column: 2 / 3;
+  grid-row: 1 / 2;
+  align-self: flex-end;
+  font-size: 1.5rem;
+  font-weight: 700;
+  padding-bottom: 0.5rem;
+}
+
+.centered.text .contents.with-error .error .title code {
+  font-family: 'JetBrains Mono';
+}
+
+.centered.text .contents.with-error .error .description {
+  grid-column: 2 / 3;
+  grid-row: 2 / 3;
+  font-family: 'JetBrains Mono';
+}
+
+.centered.text .contents.with-contents {
+  display: grid;
+  grid-template-columns: min-content 1fr;
+  grid-auto-rows: minmax(min-content, max-content);
+  font-family: 'JetBrains Mono';
+  line-height: 1.25rem;
+  overflow-x: hidden;
+}
+
+.centered.text .contents.with-contents .line-number {
+  padding: 0 0.5rem;
+  text-align: right;
+  opacity: 0.25;
+}
+
+.centered.text .caption {
+  margin-top: 0.25rem;
+  text-align: center;
+}
+
+.centered.text .caption code {
+  font-family: 'JetBrains Mono';
 }
 
 .centered > .navigation {
@@ -74,12 +200,24 @@ html, body {
     width: 720px;
     margin: 0 auto;
   }
+
   .centered.title {
     font-size: 3rem;
     padding: 2rem 0 0.5rem 0;
   }
+
   /* .centered .navigation {
     position: fixed;
     right: 0;
   } */
+
+  .centered.text .contents {
+    /* to get height for 16:9 ratio: 720px / 16 * 9 = 381.176470588px */
+    height: 381.176470588px;
+  }
+
+  .centered.text .contents.with-error .error {
+    grid-template-columns: 128px calc(720px - 128px - 128px - 2rem);
+    column-gap: 2rem;
+  }
 }
