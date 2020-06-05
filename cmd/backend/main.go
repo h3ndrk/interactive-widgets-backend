@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"runtime/debug"
 	"runtime/pprof"
 	"sync"
 	"syscall"
@@ -51,8 +50,7 @@ func main() {
 	signal.Notify(dumpSignals, syscall.SIGUSR1)
 	go func() {
 		for range dumpSignals {
-			fmt.Fprintf(os.Stderr, "Current #goroutines: %d\n", runtime.NumGoroutine())
-			os.Stderr.Write(debug.Stack())
+			fmt.Fprintf(os.Stderr, "Current #goroutines: %d\n\n", runtime.NumGoroutine())
 			pprof.Lookup("goroutine").WriteTo(os.Stderr, 2)
 		}
 	}()
