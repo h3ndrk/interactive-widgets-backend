@@ -27,7 +27,7 @@ type argumentError struct {
 	GotArguments  []string `json:"gotArguments"`
 }
 
-// argumentError represents an error while reading from stdin
+// stdinReadError represents an error while reading from stdin
 type stdinReadError struct {
 	Type        string `json:"type"` // always "stdinReadError"
 	ErrorReason string `json:"errorReason"`
