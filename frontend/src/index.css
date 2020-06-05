@@ -261,11 +261,19 @@ html, body {
 }
 
 .centered.button .outputs {
-  font-family: 'JetBrains Mono';
   line-height: 1.25rem;
   grid-column: 1 / 3;
   grid-row: 2 / 3;
   overflow-y: auto;
+}
+
+.centered.button .outputs .no-output {
+  font-style: italic;
+  color: #888;
+}
+
+.centered.button .outputs .stdout, .centered.button .outputs .stderr {
+  font-family: 'JetBrains Mono';
 }
 
 .centered.button .outputs .stderr {

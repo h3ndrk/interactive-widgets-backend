@@ -10,6 +10,9 @@ export default function ButtonWidget(props) {
       }}>{props.widget.label}</button>
       <div className="command">{props.widget.command}</div>
       <div className="outputs">
+        {props.widget.outputs.length === 0 &&
+          <div className="no-output">There is no output</div>
+        }
         {props.widget.outputs.map((output, i) =>
           <div className={output.origin} key={i}>{output.data}</div>
         )}
