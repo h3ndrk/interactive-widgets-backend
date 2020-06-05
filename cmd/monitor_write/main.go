@@ -124,12 +124,14 @@ func main() {
 	}()
 
 	lastEncoded := ""
-	didOutputAtLeastOnce := false
 stdoutLoop:
 	for {
 		encoded, err := fileio.ReadFileToBase64(pathToWatch)
 		if err != nil {
-			fmt.Println(err.Error())
+			if err.Error() != lastEncoded {
+				fmt.Println(err.Error())
+				lastEncoded = err.Error()
+			}
 			timer := time.NewTimer(5 * time.Second)
 			select {
 			case <-timer.C:
@@ -144,7 +146,6 @@ stdoutLoop:
 
 		// encoded will be empty or containing the base64 string
 		if encoded != lastEncoded {
-			didOutputAtLeastOnce = true
 			if err := stdoutEncoder.Encode(&contents{
 				Type:     "contents",
 				Contents: encoded,
@@ -152,18 +153,13 @@ stdoutLoop:
 				fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":%s}\n", strconv.Quote(err.Error()))
 			}
 			lastEncoded = encoded
-		} else if !didOutputAtLeastOnce && encoded == "" {
-			didOutputAtLeastOnce = true
-			if err := stdoutEncoder.Encode(&contents{
-				Type:     "contents",
-				Contents: encoded,
-			}); err != nil {
-				fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":%s}\n", strconv.Quote(err.Error()))
-			}
 		}
 
 		if err := fileio.WaitForEvent(pathToWatch, done); err != nil {
-			fmt.Println(err.Error())
+			if err.Error() != lastEncoded {
+				fmt.Println(err.Error())
+				lastEncoded = err.Error()
+			}
 			timer := time.NewTimer(5 * time.Second)
 			select {
 			case <-timer.C:
