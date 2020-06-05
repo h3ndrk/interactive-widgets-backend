@@ -15,14 +15,14 @@ import (
 //     ErrorReason string `json:"errorReason"`
 // }
 
-// OpenError represents an error while creating a file
-type OpenError struct {
+// openError represents an error while creating a file
+type openError struct {
 	Type        string `json:"type"` // always "openError"
 	Path        string `json:"path"`
 	ErrorReason string `json:"errorReason"`
 }
 
-func (e *OpenError) Error() string {
+func (e *openError) Error() string {
 	marshalled, err := json.Marshal(e)
 	if err != nil {
 		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":%s}", strconv.Quote(err.Error()))
@@ -31,14 +31,14 @@ func (e *OpenError) Error() string {
 	return string(marshalled)
 }
 
-// ReadAndDecodeError represents an error while reading and decoding Bas64 data
+// readAndDecodeError represents an error while reading and decoding Bas64 data
 // from a file
-type ReadAndDecodeError struct {
+type readAndDecodeError struct {
 	Type        string `json:"type"` // always "readAndDecodeError"
 	ErrorReason string `json:"errorReason"`
 }
 
-func (e *ReadAndDecodeError) Error() string {
+func (e *readAndDecodeError) Error() string {
 	marshalled, err := json.Marshal(e)
 	if err != nil {
 		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":%s}", strconv.Quote(err.Error()))
@@ -52,7 +52,7 @@ func (e *ReadAndDecodeError) Error() string {
 func ReadFileToBase64(pathToFile string) (string, error) {
 	file, err := os.Open(pathToFile)
 	if err != nil {
-		return "", &OpenError{Type: "openError", Path: pathToFile, ErrorReason: err.Error()}
+		return "", &openError{Type: "openError", Path: pathToFile, ErrorReason: err.Error()}
 	}
 
 	var encoded strings.Builder
@@ -63,7 +63,7 @@ func ReadFileToBase64(pathToFile string) (string, error) {
 
 		_, err = io.Copy(encoder, file)
 		if err != nil {
-			return &ReadAndDecodeError{Type: "readAndDecodeError", ErrorReason: err.Error()}
+			return &readAndDecodeError{Type: "readAndDecodeError", ErrorReason: err.Error()}
 		}
 
 		return nil

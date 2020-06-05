@@ -13,11 +13,13 @@ import (
 	"github.com/h3ndrk/containerized-playground/internal/fileio"
 )
 
+// jsonError represents an error while marshalling/unmarshalling JSON data
 // type jsonError struct {
 //     Type        string `json:"type"` // always "jsonError"
 //     ErrorReason string `json:"errorReason"`
 // }
 
+// argumentError represents an error when sanitizing input arguments
 type argumentError struct {
 	Type          string   `json:"type"` // always "argumentError"
 	ExpectedCount int      `json:"expectedCount"`
@@ -25,22 +27,26 @@ type argumentError struct {
 	GotArguments  []string `json:"gotArguments"`
 }
 
+// argumentError represents an error while reading from stdin
 type stdinReadError struct {
 	Type        string `json:"type"` // always "stdinReadError"
 	ErrorReason string `json:"errorReason"`
 }
 
+// removalError represents an error while removing the watched file
 type removalError struct {
 	Type        string `json:"type"` // always "removalError"
 	Path        string `json:"path"`
 	ErrorReason string `json:"errorReason"`
 }
 
+// contents represents a request for writing the given contents to the file
 type contents struct {
-	Type     string `json:"type"` // always "contents"
-	Contents string `json:"contents"`
+	Type     string `json:"type"`     // always "contents"
+	Contents string `json:"contents"` // as Base64
 }
 
+// removal represents a request to delete the watched file
 type removal struct {
 	Type string `json:"type"` // always "removal"
 }

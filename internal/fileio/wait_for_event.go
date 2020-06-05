@@ -14,13 +14,13 @@ import (
 //     ErrorReason string `json:"errorReason"`
 // }
 
-// CreateWatcherError represents an error while creating a file watcher
-type CreateWatcherError struct {
+// createWatcherError represents an error while creating a file watcher
+type createWatcherError struct {
 	Type        string `json:"type"` // always "createWatcherError"
 	ErrorReason string `json:"errorReason"`
 }
 
-func (e *CreateWatcherError) Error() string {
+func (e *createWatcherError) Error() string {
 	marshalled, err := json.Marshal(e)
 	if err != nil {
 		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":%s}", strconv.Quote(err.Error()))
@@ -29,14 +29,14 @@ func (e *CreateWatcherError) Error() string {
 	return string(marshalled)
 }
 
-// AddWatcherError represents an error while creating a file watcher
-type AddWatcherError struct {
+// addWatcherError represents an error while creating a file watcher
+type addWatcherError struct {
 	Type        string `json:"type"` // always "addWatcherError"
 	Path        string `json:"path"`
 	ErrorReason string `json:"errorReason"`
 }
 
-func (e *AddWatcherError) Error() string {
+func (e *addWatcherError) Error() string {
 	marshalled, err := json.Marshal(e)
 	if err != nil {
 		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":%s}", strconv.Quote(err.Error()))
@@ -45,14 +45,14 @@ func (e *AddWatcherError) Error() string {
 	return string(marshalled)
 }
 
-// WatchError represents an error while watching a file
-type WatchError struct {
+// watchError represents an error while watching a file
+type watchError struct {
 	Type        string `json:"type"` // always "watchError"
 	Path        string `json:"path"`
 	ErrorReason string `json:"errorReason"`
 }
 
-func (e *WatchError) Error() string {
+func (e *watchError) Error() string {
 	marshalled, err := json.Marshal(e)
 	if err != nil {
 		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":%s}", strconv.Quote(err.Error()))
@@ -66,12 +66,12 @@ func (e *WatchError) Error() string {
 func WaitForEvent(pathToWatch string, done <-chan struct{}) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return &CreateWatcherError{Type: "createWatcherError", ErrorReason: err.Error()}
+		return &createWatcherError{Type: "createWatcherError", ErrorReason: err.Error()}
 	}
 	defer watcher.Close()
 
 	if err := watcher.Add(pathToWatch); err != nil {
-		return &AddWatcherError{Type: "addWatcherError", Path: pathToWatch, ErrorReason: err.Error()}
+		return &addWatcherError{Type: "addWatcherError", Path: pathToWatch, ErrorReason: err.Error()}
 	}
 	var parentPaths []string
 	currentPath := pathToWatch
@@ -81,7 +81,7 @@ func WaitForEvent(pathToWatch string, done <-chan struct{}) error {
 	}
 	for _, parentPath := range parentPaths {
 		if err := watcher.Add(parentPath); err != nil {
-			return &AddWatcherError{Type: "addWatcherError", Path: parentPath, ErrorReason: err.Error()}
+			return &addWatcherError{Type: "addWatcherError", Path: parentPath, ErrorReason: err.Error()}
 		}
 	}
 
@@ -110,7 +110,7 @@ func WaitForEvent(pathToWatch string, done <-chan struct{}) error {
 				return nil
 			}
 
-			return &WatchError{Type: "watchError", Path: pathToWatch, ErrorReason: err.Error()}
+			return &watchError{Type: "watchError", Path: pathToWatch, ErrorReason: err.Error()}
 		}
 	}
 }
