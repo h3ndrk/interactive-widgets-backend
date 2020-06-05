@@ -76,7 +76,7 @@ html, body {
 
 .centered.text .contents {
   /* since .centered has 4vw margin it has (100vw - 8vw) width */
-  /* to get height for 4:3 ratio: 92vw / 4 * 3 = 43.578947368vw */
+  /* to get height for 16:9 ratio: 92vw / 16 * 9 = 43.578947368vw */
   height: 43.578947368vw;
   background-color: #eee;
   border-radius: 0.5rem;
@@ -143,6 +143,73 @@ html, body {
 }
 
 .centered.text .caption code {
+  font-family: 'JetBrains Mono';
+}
+
+.centered.image {
+  padding: 1rem 0 2rem 0;
+}
+
+.centered.image .contents {
+  /* since .centered has 4vw margin it has (100vw - 8vw) width */
+  /* to get height for 16:9 ratio: 92vw / 16 * 9 = 43.578947368vw */
+  height: 43.578947368vw;
+  background-color: #eee;
+  border-radius: 0.5rem;
+  box-sizing: border-box;
+}
+
+.centered.image .contents.with-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.centered.image .contents.with-error .error {
+  display: grid;
+  grid-template-columns: 128px calc(92vw - 128px - 20vw - 4vw);
+  grid-template-rows: 1fr 1fr;
+  column-gap: 4vw;
+}
+
+.centered.image .contents.with-error .error img {
+  width: 128px;
+  height: 128px;
+  grid-column: 1 / 2;
+  grid-row: 1 / 3;
+}
+
+.centered.image .contents.with-error .error .title {
+  grid-column: 2 / 3;
+  grid-row: 1 / 2;
+  align-self: flex-end;
+  font-size: 1.5rem;
+  font-weight: 700;
+  padding-bottom: 0.5rem;
+}
+
+.centered.image .contents.with-error .error .title code {
+  font-family: 'JetBrains Mono';
+}
+
+.centered.image .contents.with-error .error .description {
+  grid-column: 2 / 3;
+  grid-row: 2 / 3;
+  font-family: 'JetBrains Mono';
+}
+
+.centered.image .contents.with-contents {
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: center;
+}
+
+.centered.image .caption {
+  margin-top: 0.25rem;
+  text-align: center;
+}
+
+.centered.image .caption code {
   font-family: 'JetBrains Mono';
 }
 
@@ -219,5 +286,10 @@ html, body {
   .centered.text .contents.with-error .error {
     grid-template-columns: 128px calc(720px - 128px - 128px - 2rem);
     column-gap: 2rem;
+  }
+
+  .centered.image .contents {
+    /* to get height for 16:9 ratio: 720px / 16 * 9 = 381.176470588px */
+    height: 381.176470588px;
   }
 }
