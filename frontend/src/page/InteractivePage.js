@@ -55,6 +55,78 @@ export default function InteractivePage(props) {
           return;
         }
 
+        const patchedMonitorWriteWidget = (widget, message, decodeBase64) => {
+          if (message.data.type !== undefined) {
+            switch (message.data.type) {
+              case "jsonError":
+                if (message.data.errorReason !== undefined) {
+                  return { ...widget, contents: null, error: `JSON Error: ${message.data.errorReason}` };
+                }
+                break;
+              case "argumentError":
+                if (message.data.expectedCount !== undefined && message.data.gotCount !== undefined && message.data.gotArguments !== undefined) {
+                  return { ...widget, contents: null, error: `monitor-write process called with wrong arguments: Expected ${message.data.expectedCount}, got ${message.data.gotCount}: [${message.data.gotArguments.map(argument => `"${argument}"`).join(", ")}]` };
+                }
+                break;
+              case "stdinReadError":
+                if (message.data.errorReason !== undefined) {
+                  return { ...widget, contents: null, error: `Error while reading stdin: ${message.data.errorReason}` };
+                }
+                break;
+              case "removalError":
+                if (message.data.path !== undefined && message.data.errorReason !== undefined) {
+                  return { ...widget, contents: null, error: `Error while removing the watched file "${message.data.path}": ${message.data.errorReason}` };
+                }
+                break;
+              case "contents":
+                if (message.data.contents !== undefined) {
+                  return { ...widget, contents: decodeBase64 ? atob(message.data.contents) : message.data.contents, error: null };
+                }
+                break;
+              case "openError":
+                if (message.data.path !== undefined && message.data.errorReason !== undefined) {
+                  return { ...widget, contents: null, error: `Error while opening the file "${message.data.path}" for reading: ${message.data.errorReason}` };
+                }
+                break;
+              case "readAndDecodeError":
+                if (message.data.errorReason !== undefined) {
+                  return { ...widget, contents: null, error: `Error while reading and decoding Base64 data: ${message.data.errorReason}` };
+                }
+                break;
+              case "createWatcherError":
+                if (message.data.errorReason !== undefined) {
+                  return { ...widget, contents: null, error: `Error while creating a file watcher: ${message.data.errorReason}` };
+                }
+                break;
+              case "addWatcherError":
+                if (message.data.path !== undefined && message.data.errorReason !== undefined) {
+                  return { ...widget, contents: null, error: `Error while creating a file watcher for "${message.data.path}": ${message.data.errorReason}` };
+                }
+                break;
+              case "watchError":
+                if (message.data.path !== undefined && message.data.errorReason !== undefined) {
+                  return { ...widget, contents: null, error: `Error while watching the file "${message.data.path}": ${message.data.errorReason}` };
+                }
+                break;
+              case "createError":
+                if (message.data.path !== undefined && message.data.errorReason !== undefined) {
+                  return { ...widget, contents: null, error: `Error while creating the file "${message.data.path}": ${message.data.errorReason}` };
+                }
+                break;
+              case "decodeError":
+                if (message.data.errorReason !== undefined) {
+                  return { ...widget, contents: null, error: `Error while decoding Base64 data: ${message.data.errorReason}` };
+                }
+                break;
+              case "writeError":
+                if (message.data.errorReason !== undefined) {
+                  return { ...widget, contents: null, error: `Error while writing Base64 data to a file: ${message.data.errorReason}` };
+                }
+                break;
+            }
+          }
+        };
+
         setWidgets(widgets => widgets.map((widget, widgetIndex) => {
           if (widgetIndex !== message.widgetIndex) {
             return widget;
@@ -62,36 +134,18 @@ export default function InteractivePage(props) {
 
           switch (widget.type) {
             case 'text': {
-              if (message.data.contents !== undefined) {
-                if (message.data.contents.length > 0) {
-                  return { ...widget, contents: atob(message.data.contents), error: null };
-                } else {
-                  return { ...widget, contents: null };
-                }
-              } else if (message.data.error !== undefined) {
-                if (message.data.error.length > 0) {
-                  return { ...widget, error: atob(message.data.error) };
-                } else {
-                  return { ...widget, error: null };
-                }
+              const patchedWidget = patchedMonitorWriteWidget(widget, message, true);
+              if (patchedWidget !== undefined) {
+                return patchedWidget;
               }
 
               console.warn('Ignore message: TextWidget does not have handler implemented', event.data);
               return widget;
             }
             case 'image': {
-              if (message.data.contents !== undefined) {
-                if (message.data.contents.length > 0) {
-                  return { ...widget, contents: message.data.contents, error: null };
-                } else {
-                  return { ...widget, contents: null };
-                }
-              } else if (message.data.error !== undefined) {
-                if (message.data.error.length > 0) {
-                  return { ...widget, error: atob(message.data.error) };
-                } else {
-                  return { ...widget, error: null };
-                }
+              const patchedWidget = patchedMonitorWriteWidget(widget, message, false);
+              if (patchedWidget !== undefined) {
+                return patchedWidget;
               }
 
               console.warn('Ignore message: ImageWidget does not have handler implemented', event.data);
@@ -117,18 +171,9 @@ export default function InteractivePage(props) {
               return widget;
             }
             case 'editor': {
-              if (message.data.contents !== undefined) {
-                if (message.data.contents.length > 0) {
-                  return { ...widget, contents: atob(message.data.contents), error: null };
-                } else {
-                  return { ...widget, contents: null };
-                }
-              } else if (message.data.error !== undefined) {
-                if (message.data.error.length > 0) {
-                  return { ...widget, error: atob(message.data.error) };
-                } else {
-                  return { ...widget, error: null };
-                }
+              const patchedWidget = patchedMonitorWriteWidget(widget, message, true);
+              if (patchedWidget !== undefined) {
+                return patchedWidget;
               }
 
               console.warn('Ignore message: EditorWidget does not have handler implemented', event.data);
