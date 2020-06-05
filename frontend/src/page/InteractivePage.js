@@ -64,7 +64,7 @@ export default function InteractivePage(props) {
             case 'text': {
               if (message.data.contents !== undefined) {
                 if (message.data.contents.length > 0) {
-                  return { ...widget, contents: atob(message.data.contents) };
+                  return { ...widget, contents: atob(message.data.contents), error: null };
                 } else {
                   return { ...widget, contents: null };
                 }
@@ -82,7 +82,7 @@ export default function InteractivePage(props) {
             case 'image': {
               if (message.data.contents !== undefined) {
                 if (message.data.contents.length > 0) {
-                  return { ...widget, contents: message.data.contents };
+                  return { ...widget, contents: message.data.contents, error: null };
                 } else {
                   return { ...widget, contents: null };
                 }
@@ -119,7 +119,7 @@ export default function InteractivePage(props) {
             case 'editor': {
               if (message.data.contents !== undefined) {
                 if (message.data.contents.length > 0) {
-                  return { ...widget, contents: atob(message.data.contents) };
+                  return { ...widget, contents: atob(message.data.contents), error: null };
                 } else {
                   return { ...widget, contents: null };
                 }
