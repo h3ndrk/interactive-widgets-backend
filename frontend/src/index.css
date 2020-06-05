@@ -245,6 +245,11 @@ html, body {
   padding: 0.75rem 1rem;
   border-radius: 0.25rem;
   cursor: pointer;
+  transition: box-shadow 0.25s ease;
+}
+
+.centered.button button.button:hover {
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.125), 0 3px 7px rgba(0, 0, 0, 0.125), 0 5px 15px rgba(0, 0, 0, 0.125), 0 3px 15px rgba(0, 0, 0, 0.125);
 }
 
 .centered.button .command {
