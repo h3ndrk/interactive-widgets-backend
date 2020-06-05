@@ -1,22 +1,7 @@
 package executor
 
-// MonitorWriteContentsMessage gets send from a monitor-write widget to the
-// client.
-type MonitorWriteContentsMessage struct {
-	Contents []byte `json:"contents"`
-}
-
-// MonitorWriteErrorMessage gets send from a monitor-write widget to the
-// client.
-type MonitorWriteErrorMessage struct {
-	Error []byte `json:"error"`
-}
-
-// MonitorWriteInputMessage gets send from the client to a monitor-write
-// widget.
-type MonitorWriteInputMessage struct {
-	Contents []byte `json:"contents"`
-}
+// Messages for monitor-write widgets can be found in the cmd/monitor_write and
+// internal/fileio packages.
 
 // ButtonClickMessage gets send from the client to a button widget.
 type ButtonClickMessage struct {
