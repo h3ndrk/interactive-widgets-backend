@@ -435,4 +435,14 @@ html, body {
     /* to get height for 16:9 ratio: 720px / 16 * 9 = 381.176470588px */
     max-height: 381.176470588px;
   }
+
+  .centered.editor .contents {
+    /* to get height for 16:9 ratio: 720px / 16 * 9 = 381.176470588px */
+    height: 381.176470588px;
+  }
+
+  .centered.editor .contents.with-error .error {
+    grid-template-columns: 128px calc(720px - 128px - 128px - 2rem);
+    column-gap: 2rem;
+  }
 }
