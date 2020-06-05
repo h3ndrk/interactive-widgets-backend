@@ -23,7 +23,7 @@ type CreateError struct {
 func (e *CreateError) Error() string {
 	marshalled, err := json.Marshal(e)
 	if err != nil {
-		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":%s}\n", strconv.Quote(err.Error()))
+		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":%s}", strconv.Quote(err.Error()))
 	}
 
 	return string(marshalled)
@@ -38,7 +38,7 @@ type DecodeError struct {
 func (e *DecodeError) Error() string {
 	marshalled, err := json.Marshal(e)
 	if err != nil {
-		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":%s}\n", strconv.Quote(err.Error()))
+		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":%s}", strconv.Quote(err.Error()))
 	}
 
 	return string(marshalled)
@@ -53,7 +53,7 @@ type WriteError struct {
 func (e *WriteError) Error() string {
 	marshalled, err := json.Marshal(e)
 	if err != nil {
-		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":%s}\n", strconv.Quote(err.Error()))
+		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":%s}", strconv.Quote(err.Error()))
 	}
 
 	return string(marshalled)
