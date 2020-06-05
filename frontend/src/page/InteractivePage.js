@@ -254,6 +254,7 @@ export default function InteractivePage(props) {
                     webSocket.current.send(JSON.stringify({
                       widgetIndex: i,
                       data: {
+                        type: "contents",
                         contents: btoa(value),
                       },
                     }));
