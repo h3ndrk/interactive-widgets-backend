@@ -96,7 +96,7 @@ func main() {
 					continue stdinLoop
 				}
 
-				if err := fileio.WriteFileFromBase64(pathToWatch, scanner.Text()); err != nil {
+				if err := fileio.WriteFileFromBase64(pathToWatch, contentsMessage.Contents); err != nil {
 					fmt.Println(err.Error())
 					continue stdinLoop
 				}
