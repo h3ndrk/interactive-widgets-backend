@@ -16,7 +16,7 @@ import (
 //     ErrorReason string `json:"errorReason"`
 // }
 
-// openError represents an error while creating a file
+// openError represents an error while opening a file for reading
 type openError struct {
 	Type        string `json:"type"` // always "openError"
 	Path        string `json:"path"`
