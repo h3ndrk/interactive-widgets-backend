@@ -2,12 +2,12 @@ package docker
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"os/exec"
 	"sync"
 	"syscall"
@@ -32,12 +32,10 @@ type monitorWriteWidget struct {
 	process       *exec.Cmd
 	stdinWriter   io.WriteCloser
 	stdoutChannel chan []byte
-	stderrChannel chan []byte
 	errChannel    chan error
 
-	stateMutex sync.Mutex
-	contents   []byte
-	lastError  []byte
+	stateMutex  sync.Mutex
+	lastMessage []byte
 }
 
 func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool) (widgetStream, error) {
@@ -57,7 +55,6 @@ func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool)
 		connectWrite: connectWrite,
 
 		stdoutChannel: make(chan []byte),
-		stderrChannel: make(chan []byte),
 		errChannel:    make(chan error, 3), // ensure that errors are non-blocking (there are at most 3 places where at least one error gets written)
 	}
 
@@ -67,7 +64,6 @@ func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool)
 		w.stopWaiting.Add(1)
 
 		defer close(w.stdoutChannel)
-		defer close(w.stderrChannel)
 		defer close(w.errChannel) // errChannel needs to close last
 		defer w.runningMutex.Unlock()
 	loop:
@@ -102,19 +98,7 @@ func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool)
 			}
 			stdoutScanner := bufio.NewScanner(stdoutPipe)
 
-			stderrPipe, err := w.process.StderrPipe()
-			if err != nil {
-				log.Print(errors.Wrap(err, "Failed to create stderr pipe for monitor-write process"))
-				if w.stopRequested {
-					w.process = nil
-					break loop
-				} else {
-					// restarting process
-					time.Sleep(time.Second)
-					continue
-				}
-			}
-			stderrScanner := bufio.NewScanner(stderrPipe)
+			w.process.Stderr = os.Stderr
 
 			err = w.process.Start()
 			if err != nil {
@@ -142,27 +126,9 @@ func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool)
 				defer outputStreamWaiting.Done()
 
 				for stdoutScanner.Scan() {
-					decoded, err := base64.StdEncoding.DecodeString(stdoutScanner.Text())
-					if err != nil {
-						w.errChannel <- err
-						break
-					}
-
-					w.stdoutChannel <- decoded
+					w.stdoutChannel <- stdoutScanner.Bytes()
 				}
 				if err := stdoutScanner.Err(); err != nil {
-					w.errChannel <- err
-				}
-			}()
-
-			outputStreamWaiting.Add(1)
-			go func() {
-				defer outputStreamWaiting.Done()
-
-				for stderrScanner.Scan() {
-					w.stderrChannel <- stderrScanner.Bytes()
-				}
-				if err := stderrScanner.Err(); err != nil {
 					w.errChannel <- err
 				}
 			}()
@@ -189,126 +155,15 @@ func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool)
 
 // Read returns messages from the running monitor-write process.
 func (w *monitorWriteWidget) Read() ([]byte, error) {
-	stdoutCloseDetected := false
-	stderrCloseDetected := false
+	// try to read from stdout with higher priority (to drain stdout channels)
+	select {
+	case data, ok := <-w.stdoutChannel:
+		if ok {
+			w.stateMutex.Lock()
+			w.lastMessage = data
+			w.stateMutex.Unlock()
 
-	// try to read from stdout or stderr with higher priority (to drain stdout/stderr channels)
-	for !stdoutCloseDetected || !stderrCloseDetected {
-		if !stdoutCloseDetected && !stderrCloseDetected {
-			select {
-			case data, ok := <-w.stdoutChannel:
-				if !ok {
-					stdoutCloseDetected = true
-				} else {
-					w.stateMutex.Lock()
-
-					if bytes.Compare(data, w.contents) != 0 {
-						w.contents = data
-						if len(w.contents) > 0 {
-							w.lastError = nil
-						}
-
-						marshalled, err := json.Marshal(&executor.MonitorWriteContentsMessage{
-							Contents: data,
-						})
-						if err != nil {
-							log.Print(errors.Wrap(err, "Failed to marshal contents message"))
-							time.Sleep(time.Second)
-							// retry
-						} else {
-							w.stateMutex.Unlock()
-
-							return marshalled, nil
-						}
-					}
-
-					w.stateMutex.Unlock()
-				}
-			case data, ok := <-w.stderrChannel:
-				if !ok {
-					stderrCloseDetected = true
-				} else {
-					w.stateMutex.Lock()
-
-					if bytes.Compare(data, w.lastError) != 0 {
-						w.lastError = data
-
-						marshalled, err := json.Marshal(&executor.MonitorWriteErrorMessage{
-							Error: data,
-						})
-						if err != nil {
-							log.Print(errors.Wrap(err, "Failed to marshal error message"))
-							time.Sleep(time.Second)
-							// retry
-						} else {
-							w.stateMutex.Unlock()
-
-							return marshalled, nil
-						}
-					}
-
-					w.stateMutex.Unlock()
-				}
-			}
-		} else if !stdoutCloseDetected && stderrCloseDetected {
-			select {
-			case data, ok := <-w.stdoutChannel:
-				if !ok {
-					stdoutCloseDetected = true
-				} else {
-					w.stateMutex.Lock()
-
-					if bytes.Compare(data, w.contents) != 0 {
-						w.contents = data
-						if len(w.contents) > 0 {
-							w.lastError = nil
-						}
-
-						marshalled, err := json.Marshal(&executor.MonitorWriteContentsMessage{
-							Contents: data,
-						})
-						if err != nil {
-							log.Print(errors.Wrap(err, "Failed to marshal contents message"))
-							time.Sleep(time.Second)
-							// retry
-						} else {
-							w.stateMutex.Unlock()
-
-							return marshalled, nil
-						}
-					}
-
-					w.stateMutex.Unlock()
-				}
-			}
-		} else if stdoutCloseDetected && !stderrCloseDetected {
-			select {
-			case data, ok := <-w.stderrChannel:
-				if !ok {
-					stderrCloseDetected = true
-				} else {
-					w.stateMutex.Lock()
-
-					if bytes.Compare(data, w.lastError) != 0 {
-						w.lastError = data
-
-						marshalled, err := json.Marshal(&executor.MonitorWriteErrorMessage{
-							Error: data,
-						})
-						if err != nil {
-							log.Print(errors.Wrap(err, "Failed to marshal error message"))
-							time.Sleep(time.Second)
-							// retry
-						} else {
-							w.stateMutex.Unlock()
-
-							return marshalled, nil
-						}
-					}
-
-					w.stateMutex.Unlock()
-				}
-			}
+			return data, nil
 		}
 	}
 
@@ -373,28 +228,10 @@ func (w *monitorWriteWidget) Close() error {
 	return nil
 }
 
-// GetCurrentState returns an empty JSON object (there is no state).
+// GetCurrentState returns an the last received message from the process.
 func (w *monitorWriteWidget) GetCurrentState() ([]byte, error) {
 	w.stateMutex.Lock()
 	defer w.stateMutex.Unlock()
 
-	if w.lastError == nil {
-		marshalled, err := json.Marshal(&executor.MonitorWriteContentsMessage{
-			Contents: w.contents,
-		})
-		if err != nil {
-			return nil, errors.Wrap(err, "Failed to marshal contents message")
-		}
-
-		return marshalled, nil
-	}
-
-	marshalled, err := json.Marshal(&executor.MonitorWriteErrorMessage{
-		Error: w.lastError,
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to marshal contents message")
-	}
-
-	return marshalled, nil
+	return w.lastMessage, nil
 }
