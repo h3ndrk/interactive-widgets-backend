@@ -23,7 +23,7 @@ type CreateWatcherError struct {
 func (e *CreateWatcherError) Error() string {
 	marshalled, err := json.Marshal(e)
 	if err != nil {
-		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":\"%s\"}\n", strconv.Quote(err.Error()))
+		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":%s}\n", strconv.Quote(err.Error()))
 	}
 
 	return string(marshalled)
@@ -39,7 +39,7 @@ type AddWatcherError struct {
 func (e *AddWatcherError) Error() string {
 	marshalled, err := json.Marshal(e)
 	if err != nil {
-		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":\"%s\"}\n", strconv.Quote(err.Error()))
+		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":%s}\n", strconv.Quote(err.Error()))
 	}
 
 	return string(marshalled)
@@ -55,7 +55,7 @@ type WatchError struct {
 func (e *WatchError) Error() string {
 	marshalled, err := json.Marshal(e)
 	if err != nil {
-		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":\"%s\"}\n", strconv.Quote(err.Error()))
+		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":%s}\n", strconv.Quote(err.Error()))
 	}
 
 	return string(marshalled)

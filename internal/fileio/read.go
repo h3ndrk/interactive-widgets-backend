@@ -25,7 +25,7 @@ type OpenError struct {
 func (e *OpenError) Error() string {
 	marshalled, err := json.Marshal(e)
 	if err != nil {
-		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":\"%s\"}\n", strconv.Quote(err.Error()))
+		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":%s}\n", strconv.Quote(err.Error()))
 	}
 
 	return string(marshalled)
@@ -41,7 +41,7 @@ type ReadAndDecodeError struct {
 func (e *ReadAndDecodeError) Error() string {
 	marshalled, err := json.Marshal(e)
 	if err != nil {
-		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":\"%s\"}\n", strconv.Quote(err.Error()))
+		fmt.Printf("{\"type\":\"jsonError\",\"errorReason\":%s}\n", strconv.Quote(err.Error()))
 	}
 
 	return string(marshalled)
