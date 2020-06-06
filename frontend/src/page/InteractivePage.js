@@ -123,6 +123,7 @@ export default function InteractivePage(props) {
                   return { ...widget, contents: null, error: `Error while writing Base64 data to a file: ${message.data.errorReason}` };
                 }
                 break;
+              default:
             }
           }
         };
