@@ -478,6 +478,11 @@ html, body {
     height: 381.176470588px;
   }
 
+  .centered.image .contents.with-error .error {
+    grid-template-columns: 128px calc(720px - 128px - 128px - 2rem);
+    column-gap: 2rem;
+  }
+
   .centered.button {
     column-gap: 1rem;
     row-gap: 1rem;
@@ -495,7 +500,7 @@ html, body {
     margin: 1rem;
   }
 
-  .centered.editor .contents.with-error .error {
+  .centered.editor .contents.with-error .error-container .error {
     grid-template-columns: 128px calc(720px - 128px - 128px - 2rem);
     column-gap: 2rem;
   }
