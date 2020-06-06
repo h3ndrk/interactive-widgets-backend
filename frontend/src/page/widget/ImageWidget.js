@@ -3,9 +3,7 @@ import seeNoEvilMonkeyEmoji from './see-no-evil-monkey.png';
 
 export default function ImageWidget(props) {
   const showError = props.widget.error !== null || props.widget.contents === null;
-  console.log('showError:', showError);
   const contentsStyle = showError ? {} : { backgroundImage: `url(data:${props.widget.mime};base64,${props.widget.contents})` };
-  console.log('contentsStyle:', contentsStyle);
 
   return (
     <div className="centered image">
