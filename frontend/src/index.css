@@ -398,6 +398,30 @@ html, body {
   font-family: 'JetBrains Mono';
 }
 
+.centered.terminal {
+  margin-top: 1rem;
+  margin-bottom: 2rem;
+  background-color: #eee;
+  border-radius: 0.5rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  align-content: stretch;
+  padding: 2vw;
+  /* to get height for 16:9 ratio: 92vw / 16 * 9 = 43.578947368vw */
+  height: 43.578947368vw;
+}
+
+.centered.terminal .title {
+  font-weight: 700;
+  margin-bottom: 2vw;
+}
+
+.centered.terminal .terminal {
+  flex-grow: 1;
+}
+
 .centered > .navigation {
   margin: 1rem 0;
   padding: 0 1rem;
