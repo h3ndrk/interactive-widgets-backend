@@ -249,6 +249,17 @@ export default function InteractivePage(props) {
               <EditorWidget
                 key={`${props.page.url}/${i}`}
                 widget={widget}
+                onCreateOrEmpty={() => {
+                  if (webSocket.current !== null) {
+                    webSocket.current.send(JSON.stringify({
+                      widgetIndex: i,
+                      data: {
+                        type: "contents",
+                        contents: "",
+                      },
+                    }));
+                  }
+                }}
                 onChange={value => {
                   if (webSocket.current !== null) {
                     webSocket.current.send(JSON.stringify({
@@ -256,6 +267,16 @@ export default function InteractivePage(props) {
                       data: {
                         type: "contents",
                         contents: btoa(value),
+                      },
+                    }));
+                  }
+                }}
+                onDelete={() => {
+                  if (webSocket.current !== null) {
+                    webSocket.current.send(JSON.stringify({
+                      widgetIndex: i,
+                      data: {
+                        type: "removal",
                       },
                     }));
                   }
