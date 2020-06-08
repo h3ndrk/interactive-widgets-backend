@@ -66,8 +66,116 @@ html, body {
 }
 
 .centered.markdown {
-  margin-top: 1rem;
+  padding: 1rem 0 2rem 0;
+}
+
+.centered.markdown p {
+  padding: 0.5rem 0 1.5rem 0;
+}
+
+.centered.markdown em {
+  font-style: italic;
+}
+
+.centered.markdown strong {
+  font-weight: 700;
+}
+
+.centered.markdown hr {
+  margin: 1rem 0 2rem 0;
+  height: 0.15rem;
+  background-color: #ccc;
+  border: none;
+}
+
+.centered.markdown blockquote {
+  padding: 0.5rem 1rem 1rem 1rem;
   margin-bottom: 1rem;
+  box-shadow: inset 0.15rem 0 0 #ccc;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+.centered.markdown blockquote > *:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.centered.markdown a {
+  color: #1e88e5;
+}
+
+.centered.markdown table {
+  margin: 0.5rem 0 1.5rem 0;
+  background-color: #eee;
+  border-radius: 0.5rem;
+  box-sizing: border-box;
+  padding: 0.5rem 0;
+}
+
+.centered.markdown table th {
+  font-weight: 700;
+  padding: 0.5rem 1rem;
+}
+
+.centered.markdown table td {
+  padding: 0.5rem 1rem;
+}
+
+.centered.markdown h1 {
+  padding: 0.5rem 0 1.5rem 0;
+  font-weight: 700;
+  font-size: 2rem;
+}
+
+.centered.markdown h2 {
+  padding: 0.5rem 0 1.5rem 0;
+  font-weight: 700;
+  font-size: 1.85rem;
+}
+
+.centered.markdown h3 {
+  padding: 0.5rem 0 1.5rem 0;
+  font-weight: 700;
+  font-size: 1.7rem;
+}
+
+.centered.markdown h4 {
+  padding: 0.5rem 0 1.5rem 0;
+  font-weight: 700;
+  font-size: 1.55rem;
+}
+
+.centered.markdown h5 {
+  padding: 0.5rem 0 1.5rem 0;
+  font-weight: 700;
+  font-size: 1.4rem;
+}
+
+.centered.markdown h6 {
+  padding: 0.5rem 0 1.5rem 0;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.centered.markdown code {
+  font-family: 'JetBrains Mono';
+}
+
+.centered.markdown pre {
+  padding: 0.5rem 0 1.5rem 0;
+}
+
+.centered.markdown ul {
+  padding: 0.5rem 0 1.5rem 1.5rem;
+  list-style-type: disc;
+  list-style-position: outside;
+}
+
+.centered.markdown ol {
+  padding: 0.5rem 0 1.5rem 1.5rem;
+  list-style-type: decimal;
+  list-style-position: outside;
 }
 
 .centered.text {
