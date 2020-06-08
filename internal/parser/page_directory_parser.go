@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/h3ndrk/containerized-playground/internal/id"
 	"github.com/pkg/errors"
@@ -54,6 +55,12 @@ func (p *PageDirectoryParser) GetPages() ([]Page, error) {
 			title, widgets, imagePaths, err := parsePage(path)
 			if err != nil {
 				return errors.Wrapf(err, "Failed to parse page \"%s\"", path)
+			}
+
+			for _, imagePath := range imagePaths {
+				if !strings.HasPrefix(filepath.Join(basePath, imagePath), p.pagesDirectory) {
+					return errors.Errorf("Image path \"%s\" of page \"%s\" escapes pages directory \"%s\"", imagePath, url, p.pagesDirectory)
+				}
 			}
 
 			readPages = append(readPages, Page{
