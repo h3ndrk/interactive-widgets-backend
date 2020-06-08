@@ -251,10 +251,12 @@ func (s *WebSocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
 }
 
+// Shutdown terminates the websocket server.
 func (s *WebSocketServer) Shutdown() {
 	close(s.shutdownChannel)
 }
 
+// Wait waits for the websocket server to terminate.
 func (s *WebSocketServer) Wait() {
 	s.shutdownWaiting.Wait()
 }
