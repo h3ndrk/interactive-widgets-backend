@@ -6,9 +6,12 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/gorilla/websocket"
 	"github.com/h3ndrk/containerized-playground/internal/id"
 	"github.com/h3ndrk/containerized-playground/internal/multiplexer"
@@ -177,6 +180,68 @@ func NewWebSocketServer(pages []parser.Page, multiplexer *multiplexer.Multiplexe
 
 		client.closeWaiting.Wait()
 		close(clientCloseChannel)
+	})
+
+	// serve images embedded in markdown of pages
+	server.mux.HandleFunc("/page/image", func(w http.ResponseWriter, r *http.Request) {
+		pageURLQueryParam, ok := r.URL.Query()["page_url"]
+		if !ok || len(pageURLQueryParam) < 1 {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Query param \"page_url\" missing"))
+			return
+		}
+		pageURL := id.PageURL(pageURLQueryParam[0])
+
+		imagePathQueryParam, ok := r.URL.Query()["image_path"]
+		if !ok || len(imagePathQueryParam) < 1 {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Query param \"image_path\" missing"))
+			return
+		}
+		imagePath := imagePathQueryParam[0]
+
+		page := parser.PageFromPageURL(server.pages, pageURL)
+		if page == nil {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(fmt.Sprintf("No page with URL \"%s\"", pageURL)))
+			return
+		}
+
+		foundImagePath := false
+		for _, imagePathOfPage := range page.ImagePaths {
+			if imagePath == imagePathOfPage {
+				foundImagePath = true
+				break
+			}
+		}
+		if !foundImagePath {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(fmt.Sprintf("No image with path \"%s\" found in page with URL \"%s\"", imagePath, pageURL)))
+			return
+		}
+
+		imagePathBasedOnPageDirectory := filepath.Join(page.BasePath, imagePath)
+
+		allowedMIMETypes := []string{"image/gif", "image/vnd.microsoft.icon", "image/jpeg", "image/png", "image/svg+xml", "image/tiff", "image/webp"}
+		mime, err := mimetype.DetectFile(imagePathBasedOnPageDirectory)
+		if err != nil {
+			log.Print(err)
+			// mime remains valid
+		}
+		if !mimetype.EqualsAny(mime.String(), allowedMIMETypes...) {
+			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte(fmt.Sprintf("Image path \"%s\" is not an image (MIME: %s)", imagePath, mime.String())))
+			return
+		}
+
+		image, err := os.Open(imagePathBasedOnPageDirectory)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+		}
+		defer image.Close()
+		w.Header().Set("Content-Type", mime.String())
+		io.Copy(w, image)
 	})
 
 	return server, nil
