@@ -32,7 +32,7 @@ export default function App() {
   });
 
   if (pageRoutes === null) {
-    return (<div className="centered">Loading ...</div>);
+    return (<div className="centered">Loading page ...</div>);
   }
 
   return (

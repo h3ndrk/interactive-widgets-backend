@@ -61,6 +61,9 @@ export default function Page(props) {
           }
         </div>
       </div>
+      {widgets === null &&
+        <div className="centered">Loading content ...</div>
+      }
       {widgets !== null && !page.isInteractive &&
         <StaticPage page={page} widgets={widgets} />
       }
