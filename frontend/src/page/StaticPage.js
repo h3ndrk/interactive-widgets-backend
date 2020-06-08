@@ -7,9 +7,22 @@ export default function StaticPage(props) {
       {props.widgets !== null && props.widgets.map((widget, i) => {
         switch (widget.type) {
           case 'markdown':
-            return (<MarkdownWidget key={`${props.page.url}/${i}`} widget={widget} />);
+            return (
+              <MarkdownWidget
+                key={`${props.page.url}/${i}`}
+                widget={widget}
+                pageURL={props.page.url}
+              />
+            );
           default:
-            return (<div key={`${props.page.url}/${i}`} className="centered">Widget "{widget.type}" not implemented.</div>);
+            return (
+              <div
+                key={`${props.page.url}/${i}`}
+                className="centered"
+              >
+                Widget "{widget.type}" not implemented.
+              </div>
+            );
         }
       })}
     </div>

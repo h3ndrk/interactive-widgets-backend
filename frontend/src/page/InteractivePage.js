@@ -211,6 +211,7 @@ export default function InteractivePage(props) {
               <MarkdownWidget
                 key={`${props.page.url}/${i}`}
                 widget={widget}
+                pageURL={props.page.url}
               />
             );
           case 'text':

@@ -73,6 +73,10 @@ html, body {
   padding: 0.5rem 0 1.5rem 0;
 }
 
+.centered.markdown p > img:only-child {
+  max-width: 100%;
+}
+
 .centered.markdown em {
   font-style: italic;
 }
