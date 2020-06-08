@@ -528,6 +528,7 @@ html, body {
 
 .centered.terminal .terminal {
   flex-grow: 1;
+  overflow: hidden;
 }
 
 .centered > .navigation {
@@ -635,5 +636,15 @@ html, body {
   .centered.editor .contents.with-error .error-container .error {
     grid-template-columns: 128px calc(720px - 128px - 128px - 2rem);
     column-gap: 2rem;
+  }
+
+  .centered.terminal {
+    padding: 1rem;
+    /* to get height for 16:9 ratio: 720px / 16 * 9 = 381.176470588px */
+    height: 381.176470588px;
+  }
+
+  .centered.terminal .title {
+    margin-bottom: 1rem;
   }
 }
