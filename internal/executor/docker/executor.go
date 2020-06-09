@@ -2,6 +2,7 @@ package docker
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"sync"
@@ -28,7 +29,6 @@ type Executor struct {
 
 // NewExecutor creates a new executor from pages.
 func NewExecutor(pages []parser.Page) (executor.Executor, error) {
-	// TODO: build images
 	return &Executor{
 		pages:   pages,
 		widgets: map[id.WidgetID]widgetStream{},
@@ -248,4 +248,30 @@ func (e *Executor) GetCurrentState(widgetID id.WidgetID) ([]byte, error) {
 	}
 
 	return widget.GetCurrentState()
+}
+
+// BuildImages builds all pages images and tags them s.t. this executor is able
+// to use them when executed as backend executor.
+func (e *Executor) BuildImages() error {
+	for _, page := range e.pages {
+		if page.IsInteractive {
+			log.Printf("Building docker image for interactive page \"%s\" ...", page.URL)
+
+			imageName := fmt.Sprintf("containerized-playground-%s", id.EncodePageURL(page.URL))
+
+			process := exec.Command("docker", "build", "--pull", "--tag", imageName, page.BasePath)
+			process.Stdout = os.Stdout
+			process.Stderr = os.Stderr
+
+			if err := process.Start(); err != nil {
+				return errors.Wrapf(err, "Failed to build image for page \"%s\"", page.URL)
+			}
+
+			if err := process.Wait(); err != nil {
+				return errors.Wrapf(err, "Failed to build image for page \"%s\"", page.URL)
+			}
+		}
+	}
+
+	return nil
 }
