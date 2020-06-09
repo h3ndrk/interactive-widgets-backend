@@ -48,12 +48,12 @@ export default function Page(props) {
               <div className="label">Parent topics</div>
               <div className="breadcrumbs">
                 {props.parentPages.map(parentPage =>
-                  <>
+                  <React.Fragment key={parentPage.url}>
                     <Link className="link" to={parentPage.url}>
                       {parentPage.title}
                     </Link>
                     <img className="separator" src={chevronRight} alt=">" />
-                  </>
+                  </React.Fragment>
                 )}
                 <div className="text">{page.title}</div>
               </div>
