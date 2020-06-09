@@ -68,29 +68,29 @@ table {
 }
 
 @font-face {
-  font-family: 'JetBrainsMono';
-  src: local('JetBrainsMono'), url(./fonts/JetBrainsMono-Bold-Italic.ttf) format('truetype');
+  font-family: 'JetBrains Mono';
+  src: local('JetBrains Mono'), url(./fonts/JetBrainsMono-Bold-Italic.ttf) format('truetype');
   font-weight: 700;
   font-style: italic;
 }
 
 @font-face {
-  font-family: 'JetBrainsMono';
-  src: local('JetBrainsMono'), url(./fonts/JetBrainsMono-Bold.ttf) format('truetype');
+  font-family: 'JetBrains Mono';
+  src: local('JetBrains Mono'), url(./fonts/JetBrainsMono-Bold.ttf) format('truetype');
   font-weight: 700;
   font-style: normal;
 }
 
 @font-face {
-  font-family: 'JetBrainsMono';
-  src: local('JetBrainsMono'), url(./fonts/JetBrainsMono-Italic.ttf) format('truetype');
+  font-family: 'JetBrains Mono';
+  src: local('JetBrains Mono'), url(./fonts/JetBrainsMono-Italic.ttf) format('truetype');
   font-weight: 400;
   font-style: italic;
 }
 
 @font-face {
-  font-family: 'JetBrainsMono';
-  src: local('JetBrainsMono'), url(./fonts/JetBrainsMono-Regular.ttf) format('truetype');
+  font-family: 'JetBrains Mono';
+  src: local('JetBrains Mono'), url(./fonts/JetBrainsMono-Regular.ttf) format('truetype');
   font-weight: 400;
   font-style: normal;
 }
