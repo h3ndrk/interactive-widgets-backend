@@ -23,11 +23,19 @@ export default function App() {
   // sort URLs by length s.t. the longest match is rendered
   const pageRoutes = pages === null ? null : [...pages].sort((a, b) => b.url.length - a.url.length).map(page => {
     const parentURL = path.dirname(page.url) === page.url ? null : path.dirname(page.url);
-    const parentPage = parentURL ? pages.find(page => page.url === parentURL) : null;
+    const parentPages = parentURL ? pages.filter(parentPage => {
+      let current = page.url;
+      do {
+        current = path.dirname(current);
+        if (current === parentPage.url) {
+          return true;
+        }
+      } while (current !== path.dirname(current));
+    }) : [];
     const childrenPages = pages.filter(childPage => path.dirname(childPage.url) !== childPage.url && path.dirname(childPage.url) === page.url);
 
     return (<Route key={page.url} exact path={page.url}>
-      {hasUUIDHash ? <Page page={page} parentPage={parentPage} childrenPages={childrenPages} /> : <Redirect to={`${page.url}#${uuidv4()}`} />}
+      {hasUUIDHash ? <Page page={page} parentPages={parentPages} childrenPages={childrenPages} /> : <Redirect to={`${page.url}#${uuidv4()}`} />}
     </Route>);
   });
 

@@ -43,17 +43,17 @@ export default function Page(props) {
       <div className="centered title">{page.title}</div>
       <div className="centered">
         <div className="navigation">
-          {props.parentPage !== null &&
+          {props.parentPages.length > 0 &&
             <div className="topics">
               <div className="label">Parent topic</div>
-              <Link className="link" to={props.parentPage.url} style={{
+              <Link className="link" to={props.parentPages[props.parentPages.length - 1].url} style={{
                 backgroundImage: `url(${arrowBack})`,
               }}>
-                {props.parentPage.title}
+                {props.parentPages[props.parentPages.length - 1].title}
               </Link>
             </div>
           }
-          {props.childrenPages !== null && props.childrenPages.length > 0 &&
+          {props.childrenPages.length > 0 &&
             <div className="topics">
               <div className="label">Subtopics</div>
               {props.childrenPages.map(childPage =>
