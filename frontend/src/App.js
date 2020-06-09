@@ -31,6 +31,7 @@ export default function App() {
           return true;
         }
       } while (current !== path.dirname(current));
+      return false;
     }) : [];
     const childrenPages = pages.filter(childPage => path.dirname(childPage.url) !== childPage.url && path.dirname(childPage.url) === page.url);
 
