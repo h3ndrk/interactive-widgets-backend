@@ -13,7 +13,6 @@ export default function Page(props) {
     const fetchPage = async () => {
       const response = await fetch(`/api/page?page_url=${encodeURIComponent(props.page.url)}`);
       const respondedPage = await response.json();
-      console.log(respondedPage);
       setPage(respondedPage);
       setWidgets(respondedPage.widgets.map(widget => {
         switch (widget.type) {
