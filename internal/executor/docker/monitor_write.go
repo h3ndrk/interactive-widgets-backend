@@ -65,7 +65,7 @@ func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool)
 		defer w.runningMutex.Unlock()
 	loop:
 		for {
-			w.process = exec.Command("docker", "run", "--rm", "--interactive", "--name", containerName, "--network=none", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), "containerized-playground-monitor-write", file)
+			w.process = exec.Command("docker", "run", "--rm", "--interactive", "--name", containerName, "--network=none", "--memory=16m", "--cpus=0.1", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), "containerized-playground-monitor-write", file)
 
 			stdinWriter, err := w.process.StdinPipe()
 			if err != nil {

@@ -89,7 +89,7 @@ func (w *buttonWidget) Write(data []byte) error {
 
 		w.stopWaiting.Add(1)
 
-		w.process = exec.Command("docker", "run", "--rm", "--name", containerName, "--network=none", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), imageName, "/bin/bash", "-c", w.command)
+		w.process = exec.Command("docker", "run", "--rm", "--name", containerName, "--network=none", "--memory=128m", "--cpus=0.1", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), imageName, "/bin/bash", "-c", w.command)
 
 		stdoutPipe, err := w.process.StdoutPipe()
 		if err != nil {
