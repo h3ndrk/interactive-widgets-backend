@@ -4,6 +4,7 @@ import StaticPage from './StaticPage';
 import InteractivePage from './InteractivePage';
 import arrowBack from './arrow_back-black-18dp.svg';
 import subdirectoryArrowRight from './subdirectory_arrow_right-black-18dp.svg';
+import chevronRight from './chevron_right-black-18dp.svg';
 
 export default function Page(props) {
   const [page, setPage] = useState(props.page);
@@ -44,7 +45,18 @@ export default function Page(props) {
         <div className="navigation">
           {props.parentPages.length > 0 &&
             <div className="topics">
-              <div className="label">Parent topic</div>
+              <div className="label">Parent topics</div>
+              <div className="breadcrumbs">
+                {props.parentPages.map(parentPage =>
+                  <>
+                    <Link className="link" to={parentPage.url}>
+                      {parentPage.title}
+                    </Link>
+                    <img className="separator" src={chevronRight} alt=">" />
+                  </>
+                )}
+                <div className="text">{page.title}</div>
+              </div>
               <Link className="link" to={props.parentPages[props.parentPages.length - 1].url} style={{
                 backgroundImage: `url(${arrowBack})`,
               }}>

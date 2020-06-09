@@ -557,23 +557,43 @@ html, body {
   padding: 0 0 0.25rem 0;
 }
 
-.centered > .navigation .topics .link {
+.centered > .navigation .topics > .link {
   display: block;
   color: #000;
   margin: 0.25rem 0;
   padding: 0.5rem 0.5rem 0.5rem 2.25rem;
   font-weight: 700;
   text-decoration: none;
-}
-
-.centered > .navigation .topics .link:hover {
-  text-decoration: underline;
-}
-
-.centered > .navigation .topics .link {
   background-size: 1.5rem;
   background-repeat: no-repeat;
   background-position: 0.25rem 0.3rem;
+}
+
+.centered > .navigation .topics > .link:hover {
+  text-decoration: underline;
+}
+
+.centered > .navigation .topics .breadcrumbs {
+  margin: 0.35rem 0 0.5rem 0.5rem;
+  display: flex;
+  flex-direction: row;
+}
+
+.centered > .navigation .topics .breadcrumbs .link, .centered > .navigation .topics .breadcrumbs .text {
+  font-size: 0.75rem;
+  text-decoration: none;
+  color: #888;
+}
+
+.centered > .navigation .topics .breadcrumbs .link:hover {
+  text-decoration: underline;
+  color: #000;
+}
+
+.centered > .navigation .topics .breadcrumbs .separator {
+  height: 0.75rem;
+  opacity: 0.5;
+  margin: 0 0.25rem;
 }
 
 @media (min-width: calc(720px + 8vw)) {
