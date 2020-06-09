@@ -150,7 +150,7 @@ func NewWebSocketServer(pages []parser.Page, multiplexer *multiplexer.Multiplexe
 			case <-server.shutdownChannel:
 				client.writeMutex.Lock()
 				defer client.writeMutex.Unlock()
-				connection.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "shutdown"))
+				connection.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseGoingAway, "shutdown"))
 				time.Sleep(time.Second)
 				connection.Close()
 			case <-clientCloseChannel:
