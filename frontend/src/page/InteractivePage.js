@@ -9,7 +9,6 @@ import TerminalWidget from './widget/TerminalWidget';
 
 export default function InteractivePage(props) {
   const [widgets, setWidgets] = useState(props.widgets);
-  const [disconnected, setDisconnected] = useState(false);
   const location = useLocation();
   const roomID = location.hash.substr(1);
   const webSocket = useRef(null);
@@ -24,6 +23,9 @@ export default function InteractivePage(props) {
   useEffect(() => {
     console.log('Connecting to WebSocket ...');
     webSocket.current = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/page/attach?page_url=${encodeURIComponent(props.page.url)}&room_id=${encodeURIComponent(roomID)}`);
+    webSocket.current.onclose = event => {
+      alert('Connection to server lost. The page might not work anymore. Please reload to reconnect.');
+    };
     webSocket.current.onmessage = event => {
       try {
         const message = JSON.parse(event.data);
@@ -197,6 +199,7 @@ export default function InteractivePage(props) {
     return () => {
       if (webSocket.current !== null) {
         console.log('Disconnecting from WebSocket ...');
+        webSocket.current.onclose = () => { };
         webSocket.current.close();
       }
     };
