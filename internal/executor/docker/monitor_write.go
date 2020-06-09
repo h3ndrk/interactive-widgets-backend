@@ -132,7 +132,9 @@ func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool)
 
 			w.runningMutex.Unlock()
 
-			w.process.Wait()
+			if err := w.process.Wait(); err != nil {
+				log.Print(errors.Wrap(err, "Error while running monitor-write process"))
+			}
 			outputStreamWaiting.Wait()
 
 			w.runningMutex.Lock()

@@ -63,7 +63,9 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 		return errors.Wrapf(err, "Failed to create volume for page \"%s\"", pageID)
 	}
 
-	process.Wait()
+	if err := process.Wait(); err != nil {
+		return errors.Wrapf(err, "Failed to create volume for page \"%s\"", pageID)
+	}
 
 	// start widgets
 	e.widgetsMutex.Lock()
@@ -208,7 +210,9 @@ func (e *Executor) StopPage(pageID id.PageID) error {
 		return errors.Wrapf(err, "Failed to remove volume for page \"%s\"", pageID)
 	}
 
-	process.Wait()
+	if err := process.Wait(); err != nil {
+		return errors.Wrapf(err, "Failed to remove volume for page \"%s\"", pageID)
+	}
 
 	return nil
 }

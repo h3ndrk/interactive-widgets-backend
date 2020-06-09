@@ -79,7 +79,9 @@ func newTerminalWidget(widgetID id.WidgetID, widget *parser.TerminalWidget) (wid
 			w.pseudoTerminal = pseudoTerminal
 			w.runningMutex.Unlock()
 
-			w.process.Wait()
+			if err := w.process.Wait(); err != nil {
+				log.Print(errors.Wrap(err, "Error while running terminal process"))
+			}
 			w.pseudoTerminal.Close()
 
 			w.runningMutex.Lock()

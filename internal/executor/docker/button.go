@@ -133,7 +133,12 @@ func (w *buttonWidget) Write(data []byte) error {
 		go func() {
 			defer w.stopWaiting.Done()
 
-			w.process.Wait()
+			if err := w.process.Wait(); err != nil {
+				w.output <- executor.ButtonOutputMessage{
+					Origin: executor.StderrStream,
+					Data:   []byte(errors.Wrapf(err, "Error while running button widget command").Error()),
+				}
+			}
 
 			w.mutex.Lock()
 			defer w.mutex.Unlock()
