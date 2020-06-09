@@ -106,7 +106,13 @@ func (w *terminalWidget) Read() ([]byte, error) {
 	for {
 		w.runningMutex.Lock()
 		pseudoTerminal := w.pseudoTerminal
+		process := w.process
+		stopRequested := w.stopRequested
 		w.runningMutex.Unlock()
+
+		if stopRequested {
+			return nil, io.EOF
+		}
 
 		if pseudoTerminal == nil {
 			// this case only happens when Read is called after Close and process termination
@@ -115,11 +121,29 @@ func (w *terminalWidget) Read() ([]byte, error) {
 
 		n, err := pseudoTerminal.Read(w.sharedReadChunk)
 		if err != nil {
+			if stopRequested {
+				return nil, io.EOF
+			}
+
 			if err == io.EOF || errors.Is(err, os.ErrClosed) {
 				continue
 			}
 
-			return nil, errors.Wrap(err, "Failed to read from pseudo terminal process")
+			if err, ok := err.(*os.PathError); ok {
+				if serr, ok := err.Err.(syscall.Errno); ok && serr == syscall.EIO {
+					continue
+				}
+			}
+
+			log.Print(errors.Wrap(err, "Failed to read from pseudo terminal process"))
+
+			if process != nil {
+				if err := process.Process.Signal(syscall.SIGTERM); err != nil {
+					return nil, errors.Wrap(err, "Failed to send signal to pseudo terminal process")
+				}
+			}
+
+			continue
 		}
 		sharedReadChunkLength = n
 
