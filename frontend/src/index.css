@@ -55,9 +55,48 @@ table {
 
 /* Custom rules: */
 
+@font-face {
+  font-family: 'Inter';
+  src: local('Inter'), url(./fonts/Inter-Bold-slnt=0.ttf) format('truetype');
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: local('Inter'), url(./fonts/Inter-Regular-slnt=0.ttf) format('truetype');
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: 'JetBrainsMono';
+  src: local('JetBrainsMono'), url(./fonts/JetBrainsMono-Bold-Italic.ttf) format('truetype');
+  font-weight: 700;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'JetBrainsMono';
+  src: local('JetBrainsMono'), url(./fonts/JetBrainsMono-Bold.ttf) format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'JetBrainsMono';
+  src: local('JetBrainsMono'), url(./fonts/JetBrainsMono-Italic.ttf) format('truetype');
+  font-weight: 400;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'JetBrainsMono';
+  src: local('JetBrainsMono'), url(./fonts/JetBrainsMono-Regular.ttf) format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
 html, body {
-  font-family: Inter;
-  font-size: 16px;
+  font-family: 'Inter';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
