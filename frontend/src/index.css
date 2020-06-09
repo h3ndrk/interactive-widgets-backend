@@ -621,7 +621,7 @@ html, body {
 }
 
 .centered > .navigation .topics .breadcrumbs {
-  margin: 0.35rem 0 0.5rem 0.5rem;
+  margin: 0.5rem 0 0.5rem 0;
   display: flex;
   flex-direction: row;
 }
@@ -629,7 +629,7 @@ html, body {
 .centered > .navigation .topics .breadcrumbs .link, .centered > .navigation .topics .breadcrumbs .text {
   font-size: 0.75rem;
   text-decoration: none;
-  color: #888;
+  color: #aaa;
 }
 
 .centered > .navigation .topics .breadcrumbs .link:hover {
@@ -639,7 +639,7 @@ html, body {
 
 .centered > .navigation .topics .breadcrumbs .separator {
   height: 0.75rem;
-  opacity: 0.5;
+  opacity: 0.35;
   margin: 0 0.25rem;
 }
 
