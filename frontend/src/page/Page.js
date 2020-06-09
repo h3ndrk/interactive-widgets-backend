@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import StaticPage from './StaticPage';
 import InteractivePage from './InteractivePage';
+import arrowBack from './arrow_back-black-18dp.svg';
+import subdirectoryArrowRight from './subdirectory_arrow_right-black-18dp.svg';
 
 export default function Page(props) {
   const [page, setPage] = useState(props.page);
@@ -44,7 +46,9 @@ export default function Page(props) {
           {props.parentPage !== null &&
             <div className="topics">
               <div className="label">Parent topic</div>
-              <Link className="link up" to={props.parentPage.url}>
+              <Link className="link" to={props.parentPage.url} style={{
+                backgroundImage: `url(${arrowBack})`,
+              }}>
                 {props.parentPage.title}
               </Link>
             </div>
@@ -53,7 +57,9 @@ export default function Page(props) {
             <div className="topics">
               <div className="label">Subtopics</div>
               {props.childrenPages.map(childPage =>
-                <Link key={childPage.url} className="link down" to={childPage.url}>
+                <Link key={childPage.url} className="link" to={childPage.url} style={{
+                  backgroundImage: `url(${subdirectoryArrowRight})`,
+                }}>
                   {childPage.title}
                 </Link>
               )}
