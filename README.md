@@ -32,7 +32,7 @@ Each directory must have a `page.md` file containing the Markdown for the page a
 
 Widgets are embedded using HTML inside the Markdown content. Each widget must form its own paragraph (before and after a widget must be at least one free line). Only one widget is allowed in a paragraph. An example for a button widget surrounded by some Markdown content:
 
-```md
+```markdown
 # Here come widgets!
 
 <x-button command="uname -a">Print server's architecture</x-button>
