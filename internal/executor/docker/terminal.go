@@ -60,7 +60,8 @@ func newTerminalWidget(widgetID id.WidgetID, widget *parser.TerminalWidget) (wid
 		defer w.stopWaiting.Done()
 	loop:
 		for {
-			w.process = exec.Command("docker", "run", "--rm", "--interactive", "--tty", "--name", containerName, "--network=none", "--memory=128m", "--cpus=0.1", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), "--workdir", widget.WorkingDirectory, imageName, "/bin/bash")
+			w.process = exec.Command("docker", "run", "--rm", "--interactive", "--tty", "--name", containerName, "--network=none", "--memory=128m", "--cpus=0.1", "--pids-limit=128", "--cap-drop=ALL", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), "--workdir", widget.WorkingDirectory, imageName, "/bin/bash")
+
 			pseudoTerminal, err := pty.Start(w.process)
 			if err != nil {
 				log.Print(errors.Wrap(err, "Failed to start pseudo terminal process"))
