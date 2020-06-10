@@ -22,13 +22,13 @@ build-docker-build:
 
 .PHONY: docker-backend
 docker-backend:
-	docker build -t docker.pkg.github.com/h3ndrk/interactive-markdown/backend -f docker/backend/Dockerfile .
+	docker build -t docker.pkg.github.com/h3ndrk/inter-md/backend -f docker/backend/Dockerfile .
 
 .PHONY: docker-monitor-write
 docker-monitor-write:
-	docker build -t docker.pkg.github.com/h3ndrk/interactive-markdown/monitor-write -f docker/monitor-write/Dockerfile .
+	docker build -t docker.pkg.github.com/h3ndrk/inter-md/monitor-write -f docker/monitor-write/Dockerfile .
 
 .PHONY: docker-docker-build
 docker-docker-build:
-	docker build -t docker.pkg.github.com/h3ndrk/interactive-markdown/docker-build -f docker/docker-build/Dockerfile .
+	docker build -t docker.pkg.github.com/h3ndrk/inter-md/docker-build -f docker/docker-build/Dockerfile .
 

@@ -1,6 +1,6 @@
 package parser
 
-import "github.com/h3ndrk/interactive-markdown/internal/id"
+import "github.com/h3ndrk/inter-md/internal/id"
 
 type Parser interface {
 	GetPages() ([]Page, error)

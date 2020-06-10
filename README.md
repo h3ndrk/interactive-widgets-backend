@@ -1,4 +1,4 @@
-# interactive-markdown
+# inter-md
 
 ## Development
 

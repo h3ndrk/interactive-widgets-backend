@@ -5,9 +5,9 @@ import (
 	"log"
 	"sync"
 
-	"github.com/h3ndrk/interactive-markdown/internal/executor"
-	"github.com/h3ndrk/interactive-markdown/internal/id"
-	"github.com/h3ndrk/interactive-markdown/internal/parser"
+	"github.com/h3ndrk/inter-md/internal/executor"
+	"github.com/h3ndrk/inter-md/internal/id"
+	"github.com/h3ndrk/inter-md/internal/parser"
 	"github.com/pkg/errors"
 )
 

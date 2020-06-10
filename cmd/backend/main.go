@@ -12,10 +12,10 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/h3ndrk/interactive-markdown/internal/executor/docker"
-	"github.com/h3ndrk/interactive-markdown/internal/multiplexer"
-	"github.com/h3ndrk/interactive-markdown/internal/parser"
-	"github.com/h3ndrk/interactive-markdown/internal/server"
+	"github.com/h3ndrk/inter-md/internal/executor/docker"
+	"github.com/h3ndrk/inter-md/internal/multiplexer"
+	"github.com/h3ndrk/inter-md/internal/parser"
+	"github.com/h3ndrk/inter-md/internal/server"
 )
 
 func main() {

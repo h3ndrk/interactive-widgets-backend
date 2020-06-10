@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/creack/pty"
-	"github.com/h3ndrk/interactive-markdown/internal/executor"
-	"github.com/h3ndrk/interactive-markdown/internal/id"
-	"github.com/h3ndrk/interactive-markdown/internal/parser"
+	"github.com/h3ndrk/inter-md/internal/executor"
+	"github.com/h3ndrk/inter-md/internal/id"
+	"github.com/h3ndrk/inter-md/internal/parser"
 	"github.com/pkg/errors"
 )
 
@@ -44,9 +44,9 @@ func newTerminalWidget(widgetID id.WidgetID, widget *parser.TerminalWidget) (wid
 	if err != nil {
 		return nil, err
 	}
-	volumeName := fmt.Sprintf("interactive-markdown-%s", id.EncodePageID(pageID))
-	imageName := fmt.Sprintf("interactive-markdown-%s", id.EncodePageURL(pageURL))
-	containerName := fmt.Sprintf("interactive-markdown-%s", id.EncodeWidgetID(widgetID))
+	volumeName := fmt.Sprintf("inter-md-%s", id.EncodePageID(pageID))
+	imageName := fmt.Sprintf("inter-md-%s", id.EncodePageURL(pageURL))
+	containerName := fmt.Sprintf("inter-md-%s", id.EncodeWidgetID(widgetID))
 
 	w := &terminalWidget{
 		stopWaiting:     &sync.WaitGroup{},

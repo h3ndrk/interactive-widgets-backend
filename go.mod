@@ -1,4 +1,4 @@
-module github.com/h3ndrk/interactive-markdown
+module github.com/h3ndrk/inter-md
 
 go 1.14
 

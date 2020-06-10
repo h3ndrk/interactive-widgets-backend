@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/h3ndrk/interactive-markdown/internal/fileio"
+	"github.com/h3ndrk/inter-md/internal/fileio"
 )
 
 // jsonError represents an error while marshalling/unmarshalling JSON data
