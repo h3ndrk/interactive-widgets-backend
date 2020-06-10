@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/h3ndrk/containerized-playground/internal/executor/docker"
-	"github.com/h3ndrk/containerized-playground/internal/parser"
+	"github.com/h3ndrk/interactive-markdown/internal/executor/docker"
+	"github.com/h3ndrk/interactive-markdown/internal/parser"
 )
 
 func main() {

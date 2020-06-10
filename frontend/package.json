@@ -3,7 +3,7 @@
   "description": "Interactive Markdown pages backed by containers",
   "repository": {
     "type": "git",
-    "url": "https://github.com/h3ndrk/containerized-playground.git"
+    "url": "https://github.com/h3ndrk/interactive-markdown.git"
   },
   "license": "MIT",
   "version": "0.1.0",

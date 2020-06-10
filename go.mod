@@ -1,4 +1,4 @@
-module github.com/h3ndrk/containerized-playground
+module github.com/h3ndrk/interactive-markdown
 
 go 1.14
 
@@ -9,6 +9,6 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/yuin/goldmark v1.1.31
-	golang.org/x/net v0.0.0-20200528225125-3c3fba18258b
+	github.com/yuin/goldmark v1.1.32
+	golang.org/x/net v0.0.0-20200602114024-627f9648deb9
 )

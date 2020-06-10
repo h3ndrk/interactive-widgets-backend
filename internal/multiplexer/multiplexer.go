@@ -5,9 +5,9 @@ import (
 	"log"
 	"sync"
 
-	"github.com/h3ndrk/containerized-playground/internal/executor"
-	"github.com/h3ndrk/containerized-playground/internal/id"
-	"github.com/h3ndrk/containerized-playground/internal/parser"
+	"github.com/h3ndrk/interactive-markdown/internal/executor"
+	"github.com/h3ndrk/interactive-markdown/internal/id"
+	"github.com/h3ndrk/interactive-markdown/internal/parser"
 	"github.com/pkg/errors"
 )
 

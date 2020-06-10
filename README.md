@@ -1,4 +1,4 @@
-# containerized-playground
+# interactive-markdown
 
 ## Development
 

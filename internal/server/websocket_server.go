@@ -13,9 +13,9 @@ import (
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/gorilla/websocket"
-	"github.com/h3ndrk/containerized-playground/internal/id"
-	"github.com/h3ndrk/containerized-playground/internal/multiplexer"
-	"github.com/h3ndrk/containerized-playground/internal/parser"
+	"github.com/h3ndrk/interactive-markdown/internal/id"
+	"github.com/h3ndrk/interactive-markdown/internal/multiplexer"
+	"github.com/h3ndrk/interactive-markdown/internal/parser"
 	"github.com/pkg/errors"
 )
 

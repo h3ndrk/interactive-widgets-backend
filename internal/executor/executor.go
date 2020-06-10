@@ -1,6 +1,6 @@
 package executor
 
-import "github.com/h3ndrk/containerized-playground/internal/id"
+import "github.com/h3ndrk/interactive-markdown/internal/id"
 
 // Executor instantiates pages and widgets in a execution backend. The methods
 // regarding one page must not be used concurrently.

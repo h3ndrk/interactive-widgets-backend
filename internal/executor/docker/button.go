@@ -9,9 +9,9 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/h3ndrk/containerized-playground/internal/executor"
-	"github.com/h3ndrk/containerized-playground/internal/id"
-	"github.com/h3ndrk/containerized-playground/internal/parser"
+	"github.com/h3ndrk/interactive-markdown/internal/executor"
+	"github.com/h3ndrk/interactive-markdown/internal/id"
+	"github.com/h3ndrk/interactive-markdown/internal/parser"
 	"github.com/pkg/errors"
 )
 
@@ -83,9 +83,9 @@ func (w *buttonWidget) Write(data []byte) error {
 		if err != nil {
 			return err
 		}
-		volumeName := fmt.Sprintf("containerized-playground-%s", id.EncodePageID(pageID))
-		imageName := fmt.Sprintf("containerized-playground-%s", id.EncodePageURL(pageURL))
-		containerName := fmt.Sprintf("containerized-playground-%s", id.EncodeWidgetID(w.widgetID))
+		volumeName := fmt.Sprintf("interactive-markdown-%s", id.EncodePageID(pageID))
+		imageName := fmt.Sprintf("interactive-markdown-%s", id.EncodePageURL(pageURL))
+		containerName := fmt.Sprintf("interactive-markdown-%s", id.EncodeWidgetID(w.widgetID))
 
 		w.stopWaiting.Add(1)
 

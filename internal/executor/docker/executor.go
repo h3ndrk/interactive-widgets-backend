@@ -7,9 +7,9 @@ import (
 	"os/exec"
 	"sync"
 
-	"github.com/h3ndrk/containerized-playground/internal/executor"
-	"github.com/h3ndrk/containerized-playground/internal/id"
-	"github.com/h3ndrk/containerized-playground/internal/parser"
+	"github.com/h3ndrk/interactive-markdown/internal/executor"
+	"github.com/h3ndrk/interactive-markdown/internal/id"
+	"github.com/h3ndrk/interactive-markdown/internal/parser"
 	"github.com/pkg/errors"
 )
 
@@ -52,7 +52,7 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 	}
 
 	// create volume
-	volumeName := fmt.Sprintf("containerized-playground-%s", id.EncodePageID(pageID))
+	volumeName := fmt.Sprintf("interactive-markdown-%s", id.EncodePageID(pageID))
 
 	process := exec.Command("docker", "volume", "create", volumeName)
 	process.Stdout = os.Stdout
@@ -199,7 +199,7 @@ func (e *Executor) StopPage(pageID id.PageID) error {
 	}
 
 	// remove volume
-	volumeName := fmt.Sprintf("containerized-playground-%s", id.EncodePageID(pageID))
+	volumeName := fmt.Sprintf("interactive-markdown-%s", id.EncodePageID(pageID))
 
 	process := exec.Command("docker", "volume", "rm", volumeName)
 	process.Stdout = os.Stdout
@@ -261,7 +261,7 @@ func (e *Executor) BuildImages() error {
 		if page.IsInteractive {
 			log.Printf("Building docker image for interactive page \"%s\" ...", page.URL)
 
-			imageName := fmt.Sprintf("containerized-playground-%s", id.EncodePageURL(page.URL))
+			imageName := fmt.Sprintf("interactive-markdown-%s", id.EncodePageURL(page.URL))
 
 			process := exec.Command("docker", "build", "--pull", "--tag", imageName, page.BasePath)
 			process.Stdout = os.Stdout

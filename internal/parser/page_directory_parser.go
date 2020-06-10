@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/h3ndrk/containerized-playground/internal/id"
+	"github.com/h3ndrk/interactive-markdown/internal/id"
 	"github.com/pkg/errors"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"

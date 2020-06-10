@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/h3ndrk/containerized-playground/internal/id"
+	"github.com/h3ndrk/interactive-markdown/internal/id"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 )
@@ -44,8 +44,8 @@ func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool)
 	if err != nil {
 		return nil, err
 	}
-	volumeName := fmt.Sprintf("containerized-playground-%s", id.EncodePageID(pageID))
-	containerName := fmt.Sprintf("containerized-playground-%s", id.EncodeWidgetID(widgetID))
+	volumeName := fmt.Sprintf("interactive-markdown-%s", id.EncodePageID(pageID))
+	containerName := fmt.Sprintf("interactive-markdown-%s", id.EncodeWidgetID(widgetID))
 
 	w := &monitorWriteWidget{
 		stopWaiting:  &sync.WaitGroup{},
@@ -65,7 +65,7 @@ func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool)
 		defer w.runningMutex.Unlock()
 	loop:
 		for {
-			w.process = exec.Command("docker", "run", "--rm", "--interactive", "--name", containerName, "--network=none", "--memory=16m", "--cpus=0.1", "--pids-limit=16", "--cap-drop=ALL", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), "containerized-playground-monitor-write", file)
+			w.process = exec.Command("docker", "run", "--rm", "--interactive", "--name", containerName, "--network=none", "--memory=16m", "--cpus=0.1", "--pids-limit=16", "--cap-drop=ALL", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), "interactive-markdown-monitor-write", file)
 
 			stdinWriter, err := w.process.StdinPipe()
 			if err != nil {

@@ -1,6 +1,6 @@
 package multiplexer
 
-import "github.com/h3ndrk/containerized-playground/internal/id"
+import "github.com/h3ndrk/interactive-markdown/internal/id"
 
 // Client represents a client connecting to a page instance.
 type Client interface {

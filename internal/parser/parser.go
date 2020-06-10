@@ -1,6 +1,6 @@
 package parser
 
-import "github.com/h3ndrk/containerized-playground/internal/id"
+import "github.com/h3ndrk/interactive-markdown/internal/id"
 
 type Parser interface {
 	GetPages() ([]Page, error)
