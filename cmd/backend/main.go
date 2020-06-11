@@ -7,41 +7,42 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"runtime/pprof"
-	"sync"
 	"syscall"
 
 	"github.com/h3ndrk/inter-md/internal/executor/docker"
 	"github.com/h3ndrk/inter-md/internal/multiplexer"
 	"github.com/h3ndrk/inter-md/internal/parser"
 	"github.com/h3ndrk/inter-md/internal/server"
+	"github.com/urfave/cli/v2"
 )
 
-func main() {
-	pagesDirectoryParser := parser.NewPagesDirectoryParser("pages")
+func run(c *cli.Context) error {
+	pagesDirectoryParser := parser.NewPagesDirectoryParser(c.Path("pages-directory"))
 	pages, err := pagesDirectoryParser.GetPages()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	executor, err := docker.NewExecutor(pages)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	multiplexer, err := multiplexer.NewMultiplexer(pages, executor)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	webSocketServer, err := server.NewWebSocketServer(pages, multiplexer)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	httpServer := &http.Server{
-		Addr:    ":8080",
+		Addr:    c.String("listen-address"),
 		Handler: webSocketServer,
 	}
 	httpServer.RegisterOnShutdown(webSocketServer.Shutdown)
@@ -55,10 +56,9 @@ func main() {
 		}
 	}()
 
-	var shutdownWaiting sync.WaitGroup
-	shutdownWaiting.Add(1)
-	go func(shutdownWaiting *sync.WaitGroup) {
-		defer shutdownWaiting.Done()
+	shutdownErrorChannel := make(chan error, 1) // gets closed if goroutine finishes
+	go func() {
+		defer close(shutdownErrorChannel)
 
 		signals := make(chan os.Signal, 1)
 		signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
@@ -68,15 +68,51 @@ func main() {
 		close(dumpSignals)
 
 		if err := httpServer.Shutdown(context.Background()); err != nil {
-			log.Fatal(err)
+			shutdownErrorChannel <- err
 		}
-	}(&shutdownWaiting)
+	}()
 
 	if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatal(err)
+		return err
 	}
 
 	webSocketServer.Wait()
-	shutdownWaiting.Wait()
+	if err := <-shutdownErrorChannel; err != nil {
+		return err
+	}
 	multiplexer.Shutdown()
+
+	return nil
+}
+
+func main() {
+	pagesDirectoryDefaultValue := "pages"
+	currentWorkingDirectory, err := os.Getwd()
+	if err == nil {
+		pagesDirectoryDefaultValue = filepath.Join(currentWorkingDirectory, "pages")
+	}
+
+	app := &cli.App{
+		Name:  "backend",
+		Usage: "run server backend for inter-md",
+		Flags: []cli.Flag{
+			&cli.PathFlag{
+				Name:    "pages-directory",
+				Usage:   "absolute path to directory containing pages to serve",
+				EnvVars: []string{"PAGES_DIRECTORY"},
+				Value:   pagesDirectoryDefaultValue,
+			},
+			&cli.StringFlag{
+				Name:    "listen-address",
+				Usage:   "address and port to listen on",
+				EnvVars: []string{"LISTEN_ADDRESS"},
+				Value:   ":8080",
+			},
+		},
+		Action: run,
+	}
+
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
+	}
 }
