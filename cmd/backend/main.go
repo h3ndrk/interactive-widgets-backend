@@ -20,7 +20,7 @@ import (
 )
 
 func run(c *cli.Context) error {
-	pagesDirectoryParser := parser.NewPagesDirectoryParser(c.Path("pages-directory"))
+	pagesDirectoryParser := parser.NewPagesDirectoryParser(c.Generic("pages-directory").(*existingNonEmptyDirectory).directoryPath)
 	pages, err := pagesDirectoryParser.GetPages()
 	if err != nil {
 		return err
@@ -85,6 +85,30 @@ func run(c *cli.Context) error {
 	return nil
 }
 
+type existingNonEmptyDirectory struct {
+	directoryPath string
+}
+
+func (e *existingNonEmptyDirectory) Set(directoryPath string) error {
+	file, err := os.Open(directoryPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	if _, err := file.Readdir(1); err != nil {
+		return err
+	}
+
+	e.directoryPath = directoryPath
+
+	return nil
+}
+
+func (e *existingNonEmptyDirectory) String() string {
+	return e.directoryPath
+}
+
 func main() {
 	pagesDirectoryDefaultValue := "pages"
 	currentWorkingDirectory, err := os.Getwd()
@@ -96,11 +120,13 @@ func main() {
 		Name:  "backend",
 		Usage: "run server backend for inter-md",
 		Flags: []cli.Flag{
-			&cli.PathFlag{
+			&cli.GenericFlag{
 				Name:    "pages-directory",
 				Usage:   "absolute path to directory containing pages to serve",
 				EnvVars: []string{"PAGES_DIRECTORY"},
-				Value:   pagesDirectoryDefaultValue,
+				Value: &existingNonEmptyDirectory{
+					directoryPath: pagesDirectoryDefaultValue,
+				},
 			},
 			&cli.StringFlag{
 				Name:    "listen-address",
@@ -113,6 +139,7 @@ func main() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }
