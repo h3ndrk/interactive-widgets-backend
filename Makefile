@@ -45,9 +45,13 @@ docker/dind/docker:
 	rm -Rf /tmp/docker /tmp/docker.tgz
 
 
-.PHONY: docker-images
-docker-images: docker-backend docker-monitor-write docker-docker-build docker-nginx-frontend
+.PHONY: pages-images
+pages-images:
 	docker run --rm -v "/var/run/docker.sock:/var/run/docker.sock" -v "$(shell pwd)/pages:/pages" inter-md-docker-build
+
+
+.PHONY: docker-images
+docker-images: docker-backend docker-monitor-write docker-docker-build docker-nginx-frontend pages-images
 
 .PHONY: up
 up:
