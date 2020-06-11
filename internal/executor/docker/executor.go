@@ -22,16 +22,22 @@ type widgetStream interface {
 
 // Executor implements the executor.Executor interface.
 type Executor struct {
-	pages        []parser.Page
-	widgetsMutex sync.Mutex
-	widgets      map[id.WidgetID]widgetStream
+	pages                 []parser.Page
+	buttonArguments       []string
+	monitorWriteArguments []string
+	terminalArguments     []string
+	widgetsMutex          sync.Mutex
+	widgets               map[id.WidgetID]widgetStream
 }
 
 // NewExecutor creates a new executor from pages.
-func NewExecutor(pages []parser.Page) (executor.Executor, error) {
+func NewExecutor(pages []parser.Page, buttonArguments, monitorWriteArguments, terminalArguments []string) (executor.Executor, error) {
 	return &Executor{
-		pages:   pages,
-		widgets: map[id.WidgetID]widgetStream{},
+		pages:                 pages,
+		buttonArguments:       buttonArguments,
+		monitorWriteArguments: monitorWriteArguments,
+		terminalArguments:     terminalArguments,
+		widgets:               map[id.WidgetID]widgetStream{},
 	}, nil
 }
 
@@ -97,35 +103,35 @@ func (e *Executor) StartPage(pageID id.PageID) error {
 
 		switch widget := widget.(type) {
 		case *parser.TextWidget:
-			textWidget, err := newMonitorWriteWidget(widgetID, widget.File, false)
+			textWidget, err := newMonitorWriteWidget(widgetID, widget.File, false, e.monitorWriteArguments)
 			if err != nil {
 				return err
 			}
 
 			temporaryWidgets[widgetID] = textWidget
 		case *parser.ImageWidget:
-			imageWidget, err := newMonitorWriteWidget(widgetID, widget.File, false)
+			imageWidget, err := newMonitorWriteWidget(widgetID, widget.File, false, e.monitorWriteArguments)
 			if err != nil {
 				return err
 			}
 
 			temporaryWidgets[widgetID] = imageWidget
 		case *parser.ButtonWidget:
-			buttonWidget, err := newButtonWidget(widgetID, widget)
+			buttonWidget, err := newButtonWidget(widgetID, widget, e.buttonArguments)
 			if err != nil {
 				return err
 			}
 
 			temporaryWidgets[widgetID] = buttonWidget
 		case *parser.EditorWidget:
-			editorWidget, err := newMonitorWriteWidget(widgetID, widget.File, true)
+			editorWidget, err := newMonitorWriteWidget(widgetID, widget.File, true, e.monitorWriteArguments)
 			if err != nil {
 				return err
 			}
 
 			temporaryWidgets[widgetID] = editorWidget
 		case *parser.TerminalWidget:
-			terminalWidget, err := newTerminalWidget(widgetID, widget)
+			terminalWidget, err := newTerminalWidget(widgetID, widget, e.terminalArguments)
 			if err != nil {
 				return err
 			}

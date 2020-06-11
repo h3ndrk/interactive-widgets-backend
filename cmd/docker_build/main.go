@@ -14,7 +14,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	executor, err := docker.NewExecutor(pages)
+	executor, err := docker.NewExecutor(pages, []string{}, []string{}, []string{})
 	if err != nil {
 		log.Fatal(err)
 	}

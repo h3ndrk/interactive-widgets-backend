@@ -24,21 +24,23 @@ type buttonWidget struct {
 	output      chan executor.ButtonOutputMessage
 	clear       chan executor.ButtonClearMessage
 
-	widgetID id.WidgetID
-	command  string
+	widgetID           id.WidgetID
+	command            string
+	dockerRunArguments []string
 
 	mutex         sync.Mutex
 	stopRequested bool
 	process       *exec.Cmd
 }
 
-func newButtonWidget(widgetID id.WidgetID, widget *parser.ButtonWidget) (widgetStream, error) {
+func newButtonWidget(widgetID id.WidgetID, widget *parser.ButtonWidget, dockerRunArguments []string) (widgetStream, error) {
 	return &buttonWidget{
-		stopWaiting: &sync.WaitGroup{},
-		output:      make(chan executor.ButtonOutputMessage),
-		clear:       make(chan executor.ButtonClearMessage),
-		widgetID:    widgetID,
-		command:     widget.Command,
+		stopWaiting:        &sync.WaitGroup{},
+		output:             make(chan executor.ButtonOutputMessage),
+		clear:              make(chan executor.ButtonClearMessage),
+		widgetID:           widgetID,
+		command:            widget.Command,
+		dockerRunArguments: dockerRunArguments,
 	}, nil
 }
 
@@ -89,7 +91,9 @@ func (w *buttonWidget) Write(data []byte) error {
 
 		w.stopWaiting.Add(1)
 
-		w.process = exec.Command("docker", "run", "--rm", "--name", containerName, "--network=none", "--memory=128m", "--cpus=0.1", "--pids-limit=128", "--cap-drop=ALL", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), imageName, "/bin/bash", "-c", w.command)
+		arguments := append([]string{"docker", "run", "--rm", "--name", containerName}, w.dockerRunArguments...)
+		arguments = append(arguments, []string{"--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), imageName, "/bin/bash", "-c", w.command}...)
+		w.process = exec.Command(arguments[0], arguments[1:]...)
 
 		stdoutPipe, err := w.process.StdoutPipe()
 		if err != nil {

@@ -22,8 +22,9 @@ import (
 // docker container. A terminal widget runs a process in a pseudo terminal. The
 // process gets restarted if it stops but should not have stopped.
 type terminalWidget struct {
-	stopWaiting   *sync.WaitGroup
-	stopRequested bool
+	stopWaiting        *sync.WaitGroup
+	stopRequested      bool
+	dockerRunArguments []string
 
 	runningMutex    sync.Mutex
 	process         *exec.Cmd
@@ -35,7 +36,7 @@ type terminalWidget struct {
 	errors   [][]byte
 }
 
-func newTerminalWidget(widgetID id.WidgetID, widget *parser.TerminalWidget) (widgetStream, error) {
+func newTerminalWidget(widgetID id.WidgetID, widget *parser.TerminalWidget, dockerRunArguments []string) (widgetStream, error) {
 	pageURL, roomID, _, err := id.PageURLAndRoomIDAndWidgetIndexFromWidgetID(widgetID)
 	if err != nil {
 		return nil, err
@@ -49,8 +50,9 @@ func newTerminalWidget(widgetID id.WidgetID, widget *parser.TerminalWidget) (wid
 	containerName := fmt.Sprintf("inter-md-%s", id.EncodeWidgetID(widgetID))
 
 	w := &terminalWidget{
-		stopWaiting:     &sync.WaitGroup{},
-		sharedReadChunk: make([]byte, 4096),
+		stopWaiting:        &sync.WaitGroup{},
+		dockerRunArguments: dockerRunArguments,
+		sharedReadChunk:    make([]byte, 4096),
 	}
 
 	w.runningMutex.Lock()
@@ -60,7 +62,9 @@ func newTerminalWidget(widgetID id.WidgetID, widget *parser.TerminalWidget) (wid
 		defer w.stopWaiting.Done()
 	loop:
 		for {
-			w.process = exec.Command("docker", "run", "--rm", "--interactive", "--tty", "--name", containerName, "--network=none", "--memory=128m", "--cpus=0.1", "--pids-limit=128", "--cap-drop=ALL", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), "--workdir", widget.WorkingDirectory, imageName, "/bin/bash")
+			arguments := append([]string{"docker", "run", "--rm", "--interactive", "--tty", "--name", containerName}, w.dockerRunArguments...)
+			arguments = append(arguments, []string{"--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), "--workdir", widget.WorkingDirectory, imageName, "/bin/bash"}...)
+			w.process = exec.Command(arguments[0], arguments[1:]...)
 
 			pseudoTerminal, err := pty.Start(w.process)
 			if err != nil {

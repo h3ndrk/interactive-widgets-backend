@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,6 +20,43 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+type existingNonEmptyDirectory struct {
+	directoryPath string
+}
+
+func (e *existingNonEmptyDirectory) Set(directoryPath string) error {
+	file, err := os.Open(directoryPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	if _, err := file.Readdir(1); err != nil {
+		return err
+	}
+
+	e.directoryPath = directoryPath
+
+	return nil
+}
+
+func (e *existingNonEmptyDirectory) String() string {
+	return e.directoryPath
+}
+
+type jsonArrayOfStrings struct {
+	array []string
+}
+
+func (j *jsonArrayOfStrings) Set(value string) error {
+	return json.Unmarshal([]byte(value), &j.array)
+}
+
+func (j *jsonArrayOfStrings) String() string {
+	marshalled, _ := json.Marshal(j.array)
+	return string(marshalled)
+}
+
 func run(c *cli.Context) error {
 	pagesDirectoryParser := parser.NewPagesDirectoryParser(c.Generic("pages-directory").(*existingNonEmptyDirectory).directoryPath)
 	pages, err := pagesDirectoryParser.GetPages()
@@ -26,7 +64,12 @@ func run(c *cli.Context) error {
 		return err
 	}
 
-	executor, err := docker.NewExecutor(pages)
+	executor, err := docker.NewExecutor(
+		pages,
+		c.Generic("button-arguments").(*jsonArrayOfStrings).array,
+		c.Generic("monitor-write-arguments").(*jsonArrayOfStrings).array,
+		c.Generic("terminal-arguments").(*jsonArrayOfStrings).array,
+	)
 	if err != nil {
 		return err
 	}
@@ -85,30 +128,6 @@ func run(c *cli.Context) error {
 	return nil
 }
 
-type existingNonEmptyDirectory struct {
-	directoryPath string
-}
-
-func (e *existingNonEmptyDirectory) Set(directoryPath string) error {
-	file, err := os.Open(directoryPath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	if _, err := file.Readdir(1); err != nil {
-		return err
-	}
-
-	e.directoryPath = directoryPath
-
-	return nil
-}
-
-func (e *existingNonEmptyDirectory) String() string {
-	return e.directoryPath
-}
-
 func main() {
 	pagesDirectoryDefaultValue := "pages"
 	currentWorkingDirectory, err := os.Getwd()
@@ -124,15 +143,31 @@ func main() {
 				Name:    "pages-directory",
 				Usage:   "absolute path to directory containing pages to serve",
 				EnvVars: []string{"PAGES_DIRECTORY"},
-				Value: &existingNonEmptyDirectory{
-					directoryPath: pagesDirectoryDefaultValue,
-				},
+				Value:   &existingNonEmptyDirectory{directoryPath: pagesDirectoryDefaultValue},
 			},
 			&cli.StringFlag{
 				Name:    "listen-address",
 				Usage:   "address and port to listen on",
 				EnvVars: []string{"LISTEN_ADDRESS"},
 				Value:   ":8080",
+			},
+			&cli.GenericFlag{
+				Name:    "button-arguments",
+				Usage:   "arguments to pass to \"docker run\" process, as JSON array of strings",
+				EnvVars: []string{"BUTTON_ARGUMENTS"},
+				Value:   &jsonArrayOfStrings{array: []string{"--network=none", "--memory=128m", "--cpus=0.1", "--pids-limit=128", "--cap-drop=ALL"}},
+			},
+			&cli.GenericFlag{
+				Name:    "monitor-write-arguments",
+				Usage:   "arguments to pass to \"docker run\" process, as JSON array of strings",
+				EnvVars: []string{"MONITOR_WRITE_ARGUMENTS"},
+				Value:   &jsonArrayOfStrings{array: []string{"--network=none", "--memory=16m", "--cpus=0.1", "--pids-limit=16", "--cap-drop=ALL"}},
+			},
+			&cli.GenericFlag{
+				Name:    "terminal-arguments",
+				Usage:   "arguments to pass to \"docker run\" process, as JSON array of strings",
+				EnvVars: []string{"TERMINAL_ARGUMENTS"},
+				Value:   &jsonArrayOfStrings{array: []string{"--network=none", "--memory=128m", "--cpus=0.1", "--pids-limit=128", "--cap-drop=ALL"}},
 			},
 		},
 		Action: run,

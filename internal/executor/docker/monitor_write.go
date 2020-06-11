@@ -21,9 +21,10 @@ import (
 // container. The process gets restarted if it stops but should not have
 // stopped.
 type monitorWriteWidget struct {
-	stopWaiting   *sync.WaitGroup
-	stopRequested bool
-	connectWrite  bool
+	stopWaiting        *sync.WaitGroup
+	stopRequested      bool
+	connectWrite       bool
+	dockerRunArguments []string
 
 	runningMutex  sync.Mutex
 	process       *exec.Cmd
@@ -35,7 +36,7 @@ type monitorWriteWidget struct {
 	lastMessage []byte
 }
 
-func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool) (widgetStream, error) {
+func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool, dockerRunArguments []string) (widgetStream, error) {
 	pageURL, roomID, _, err := id.PageURLAndRoomIDAndWidgetIndexFromWidgetID(widgetID)
 	if err != nil {
 		return nil, err
@@ -48,8 +49,9 @@ func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool)
 	containerName := fmt.Sprintf("inter-md-%s", id.EncodeWidgetID(widgetID))
 
 	w := &monitorWriteWidget{
-		stopWaiting:  &sync.WaitGroup{},
-		connectWrite: connectWrite,
+		stopWaiting:        &sync.WaitGroup{},
+		connectWrite:       connectWrite,
+		dockerRunArguments: dockerRunArguments,
 
 		stdoutChannel: make(chan []byte),
 		errChannel:    make(chan error, 3), // ensure that errors are non-blocking (there are at most 3 places where at least one error gets written)
@@ -65,7 +67,9 @@ func newMonitorWriteWidget(widgetID id.WidgetID, file string, connectWrite bool)
 		defer w.runningMutex.Unlock()
 	loop:
 		for {
-			w.process = exec.Command("docker", "run", "--rm", "--interactive", "--name", containerName, "--network=none", "--memory=16m", "--cpus=0.1", "--pids-limit=16", "--cap-drop=ALL", "--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), "inter-md-monitor-write", file)
+			arguments := append([]string{"docker", "run", "--rm", "--interactive", "--name", containerName}, w.dockerRunArguments...)
+			arguments = append(arguments, []string{"--mount", fmt.Sprintf("src=%s,dst=/data", volumeName), "inter-md-monitor-write", file}...)
+			w.process = exec.Command(arguments[0], arguments[1:]...)
 
 			stdinWriter, err := w.process.StdinPipe()
 			if err != nil {
