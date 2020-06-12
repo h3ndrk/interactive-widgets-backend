@@ -304,6 +304,14 @@ export default function InteractivePage(props) {
                     }));
                   }
                 }}
+                onResize={resize => {
+                  if (webSocket.current !== null) {
+                    webSocket.current.send(JSON.stringify({
+                      widgetIndex: i,
+                      data: resize,
+                    }));
+                  }
+                }}
               />
             );
           default:

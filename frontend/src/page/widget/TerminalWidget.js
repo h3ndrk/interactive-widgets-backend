@@ -52,6 +52,9 @@ export default class TerminalWidget extends React.Component {
         title: `Terminal: ${title}`,
       });
     });
+    if (this.props.onResize) {
+      this.terminal.onResize(this.props.onResize);
+    }
     this.fitAddon.fit();
     window.addEventListener('resize', this.handleResize.bind(this));
   }

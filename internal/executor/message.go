@@ -33,6 +33,12 @@ type TerminalInputMessage struct {
 	Data []byte `json:"data"`
 }
 
+// TerminalResizeMessage gets send from the client to a terminal widget.
+type TerminalResizeMessage struct {
+	Rows int `json:"rows"`
+	Cols int `json:"cols"`
+}
+
 // TerminalOutputMessage gets send from a terminal widget to the client.
 type TerminalOutputMessage struct {
 	Data []byte `json:"data"`

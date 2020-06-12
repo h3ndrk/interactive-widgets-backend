@@ -170,23 +170,42 @@ func (w *terminalWidget) Read() ([]byte, error) {
 // Write writes messages to the running pseudo terminal process.
 func (w *terminalWidget) Write(data []byte) error {
 	var inputMessage executor.TerminalInputMessage
-	if err := json.Unmarshal(data, &inputMessage); err != nil {
-		return errors.Wrap(err, "Failed to unmarshal input message")
-	}
+	if err := json.Unmarshal(data, &inputMessage); err == nil {
+		w.runningMutex.Lock()
+		pseudoTerminal := w.pseudoTerminal
+		w.runningMutex.Unlock()
 
-	w.runningMutex.Lock()
-	pseudoTerminal := w.pseudoTerminal
-	w.runningMutex.Unlock()
-
-	// this case is only skipped when Write is called after Close and process termination
-	if pseudoTerminal != nil {
-		_, err := pseudoTerminal.Write(inputMessage.Data)
-		if err != nil {
-			return errors.Wrap(err, "Failed to write data to pseudo terminal process")
+		// this case is only skipped when Write is called after Close and process termination
+		if pseudoTerminal != nil {
+			_, err := pseudoTerminal.Write(inputMessage.Data)
+			if err != nil {
+				return errors.Wrap(err, "Failed to write data to pseudo terminal process")
+			}
 		}
+
+		return nil
 	}
 
-	return nil
+	var resizeMessage executor.TerminalResizeMessage
+	if err := json.Unmarshal(data, &resizeMessage); err == nil {
+		w.runningMutex.Lock()
+		pseudoTerminal := w.pseudoTerminal
+		w.runningMutex.Unlock()
+
+		// this case is only skipped when Write is called after Close and process termination
+		if pseudoTerminal != nil {
+			if err := pty.Setsize(pseudoTerminal, &pty.Winsize{
+				Rows: uint16(resizeMessage.Rows),
+				Cols: uint16(resizeMessage.Cols),
+			}); err != nil {
+				return errors.Wrap(err, "Failed to resize pseudo terminal process")
+			}
+		}
+
+		return nil
+	}
+
+	return errors.New("Failed to unmarshal input message")
 }
 
 // Close closes the running pseudo terminal process. Afterwards, it waits for the
