@@ -77,6 +77,8 @@ func main() {
 	go func() {
 		stderrEncoder := json.NewEncoder(os.Stderr)
 		scanner := bufio.NewScanner(os.Stdin)
+		buffer := make([]byte, 0, 64*1024)
+		scanner.Buffer(buffer, 1024*1024)
 
 	stdinLoop:
 		for scanner.Scan() {
