@@ -1,6 +1,9 @@
+import aiodocker
 import aiohttp
+import binascii
 import asyncio
 import logging
+import typing
 
 
 class RoomStateMachine:
@@ -37,11 +40,14 @@ class RoomStateMachine:
 
 class Room:
 
-    def __init__(self, name: str):
+    def __init__(self, docker: aiodocker.Docker, name: str):
+        self.docker = docker
         self.name = name
         self.logger = logging.getLogger('Room')
         self.attached_websockets = []
         self.state = RoomStateMachine()
+        
+        self.volume: typing.Optional[aiodocker.docker.DockerVolume] = None
 
     def __len__(self) -> int:
         return len(self.attached_websockets)
@@ -61,6 +67,10 @@ class Room:
         try:
             self.logger.debug('Instantiating...')
             self.state.clear_teared_down()
+            self.volume = await self.docker.volumes.create(config={
+                'Name': f'inter_md_{binascii.hexlify(self.name.encode("utf-8"))}',
+                # TODO: labels?
+            })
             # TODO: instantiate executors
         except:
             self.logger.error('Failed to instantiate.')
@@ -81,6 +91,9 @@ class Room:
             self.logger.debug('Tearing down...')
             self.state.clear_instantiated()
             # TODO: tear down executors
+            if self.volume is not None:
+                await self.volume.delete()
+                self.volume = None
         finally:
             self.logger.info('Teared down.')
             self.state.set_teared_down()
