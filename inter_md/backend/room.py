@@ -46,7 +46,7 @@ class Room:
         self.logger = logging.getLogger('Room')
         self.attached_websockets = []
         self.state = RoomStateMachine()
-        
+
         self.volume: typing.Optional[aiodocker.docker.DockerVolume] = None
 
     def __len__(self) -> int:
@@ -101,10 +101,10 @@ class Room:
     async def communicate(self, websocket: aiohttp.web.WebSocketResponse):
         self.logger.debug(f'Attaching websocket {id(websocket)}...')
         self.attached_websockets.append(websocket)
-        
+
         try:
             await self._ensure_instantiated()
-            
+
             while True:
                 message = await websocket.receive_json()
                 self.logger.debug(f'Received from {id(websocket)}: {message}')
@@ -112,13 +112,14 @@ class Room:
         finally:
             self.logger.debug(f'Detaching websocket {id(websocket)}...')
             self.attached_websockets.remove(websocket)
-            
+
             await self._ensure_teared_down()
-    
+
     async def _on_message_from_executor(self, executor, message):
         self.logger.debug('Sending message to all attached websockets...')
         for websocket in self.attached_websockets:
-            self.logger.debug(f'Sending message to websocket {id(websocket)}...')
+            self.logger.debug(
+                f'Sending message to websocket {id(websocket)}...')
             # TODO:
             # await websocket.send_json({
             #     'widget': self.
