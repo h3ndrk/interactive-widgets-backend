@@ -67,10 +67,12 @@ class Room:
         try:
             self.logger.debug('Instantiating...')
             self.state.clear_teared_down()
-            self.volume = await self.docker.volumes.create(config={
-                'Name': f'inter_md_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}',
-                # TODO: labels?
-            })
+            self.volume = await self.docker.volumes.create(
+                config={
+                    'Name': f'inter_md_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}',
+                    # TODO: labels?
+                },
+            )
             # TODO: instantiate executors
         except:
             self.logger.error('Failed to instantiate.')
