@@ -4,6 +4,7 @@ import logging
 import typing
 
 from .room import Room
+from .executors import initialization
 
 
 class DockerRoom(Room):
@@ -16,7 +17,7 @@ class DockerRoom(Room):
         self.volume: typing.Optional[aiodocker.docker.DockerVolume] = None
         
         self.executors = {
-            'init': None,  # TODO: executors.Instantiate(...)
+            'init': initialization.Initialization(self.docker, 'init', 'ubuntu', ['ls', '-al', '/'], self.send_message),
         }
 
     # async def _ensure_instantiated(self):
@@ -40,7 +41,9 @@ class DockerRoom(Room):
                     # TODO: labels?
                 },
             )
-            # TODO: instantiate executors
+            for executor_name, executor in self.executors.items():
+                self.logger.debug(f'Instantiating executor {executor_name}...')
+                await executor.instantiate(self.volume)
         except:
             self.logger.error('Failed to instantiate.')
             # TODO: should we tear down here?
@@ -63,7 +66,9 @@ class DockerRoom(Room):
         try:
             self.logger.debug('Tearing down...')
             self.state.clear_instantiated()
-            # TODO: tear down executors
+            for executor_name, executor in self.executors.items():
+                self.logger.debug(f'Tearing down executor {executor_name}...')
+                await executor.tear_down()
             if self.volume is not None:
                 await self.volume.delete()
                 self.volume = None
