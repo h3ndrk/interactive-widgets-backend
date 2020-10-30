@@ -8,21 +8,21 @@ import typing
 class RoomStateMachine:
 
     def __init__(self):
-        self.teared_down = asyncio.Event()
+        self.torn_down = asyncio.Event()
         self.instantiated = asyncio.Event()
-        self.teared_down.set()
+        self.torn_down.set()
 
-    def is_teared_down(self) -> bool:
-        return self.teared_down.is_set()
+    def is_torn_down(self) -> bool:
+        return self.torn_down.is_set()
 
     async def wait_for_tear_down(self):
-        await self.teared_down.wait()
+        await self.torn_down.wait()
 
-    def set_teared_down(self):
-        self.teared_down.set()
+    def set_torn_down(self):
+        self.torn_down.set()
 
-    def clear_teared_down(self):
-        self.teared_down.clear()
+    def clear_torn_down(self):
+        self.torn_down.clear()
 
     def is_instantiated(self) -> bool:
         return self.instantiated.is_set()
@@ -55,7 +55,7 @@ class Room(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    async def on_message(self, message: dict):
+    async def handle_message(self, message: dict):
         raise NotImplementedError
 
     @abc.abstractmethod

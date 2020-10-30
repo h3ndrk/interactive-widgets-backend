@@ -17,7 +17,7 @@ class DockerRoom(Room):
         self.volume: typing.Optional[aiodocker.docker.DockerVolume] = None
         
         self.executors = {
-            'init': initialization.Initialization(self.docker, 'init', 'ubuntu', ['ls', '-al', '/'], self.send_message),
+            'init': initialization.Initialization(self.docker, 'init', 'ubuntu', ['ls', '-al', '/'], self._send_message),
         }
 
     # async def _ensure_instantiated(self):
@@ -34,7 +34,7 @@ class DockerRoom(Room):
 
         try:
             self.logger.debug('Instantiating...')
-            self.state.clear_teared_down()
+            self.state.clear_torn_down()
             self.volume = await self.docker.volumes.create(
                 config={
                     'Name': f'inter_md_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}',
@@ -52,10 +52,10 @@ class DockerRoom(Room):
         self.logger.info('Instantiated.')
         self.state.set_instantiated()
     
-    async def on_message(self, message: dict):
-        await self.executors[message['widget']].on_message(message['message'])
+    async def handle_message(self, message: dict):
+        await self.executors[message['executor']].handle_message(message['message'])
 
-    # async def _ensure_teared_down(self):
+    # async def _ensure_torn_down(self):
     #     # TODO: is_instantiated check needed?
     #     if len(self.attached_websockets) == 0 and self.state.is_instantiated():
     #         self.logger.debug('Last websocket detached, tearing down...')
@@ -73,8 +73,14 @@ class DockerRoom(Room):
                 await self.volume.delete()
                 self.volume = None
         finally:
-            self.logger.info('Teared down.')
-            self.state.set_teared_down()
+            self.logger.info('Torn down.')
+            self.state.set_torn_down()
+
+    async def _send_message(self, executor: str, message: typing.Any):
+        await self.send_message({
+            'executor': executor,
+            'message': message,
+        })
 
     # async def communicate(self, websocket: aiohttp.web.WebSocketResponse):
     #     self.logger.debug(f'Attaching websocket {id(websocket)}...')
@@ -91,9 +97,9 @@ class DockerRoom(Room):
     #         self.logger.debug(f'Detaching websocket {id(websocket)}...')
     #         self.attached_websockets.remove(websocket)
 
-    #         await self._ensure_teared_down()
+    #         await self._ensure_torn_down()
 
-    # async def _on_message_from_executor(self, executor, message):
+    # async def _handle_message_from_executor(self, executor, message):
     #     self.logger.debug('Sending message to all attached websockets...')
     #     for websocket in self.attached_websockets:
     #         self.logger.debug(

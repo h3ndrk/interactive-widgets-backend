@@ -12,7 +12,7 @@ class DockerExecutor(abc.ABC):
     async def instantiate(self, volume: aiodocker.docker.DockerVolume):
         self.volume = volume
 
-    async def on_message(self, message: typing.Any):
+    async def handle_message(self, message: typing.Any):
         pass
 
     async def tear_down(self):

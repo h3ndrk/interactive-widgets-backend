@@ -45,5 +45,12 @@ class Initialization(DockerExecutor):
                     if message is None:
                         break
                     print(f'received: {message}')
+                    assert message.stream in [1, 2]
+                    await self.send_message(
+                        self.name,
+                        {
+                            'stdout' if message.stream == 1 else 'stderr': message.data.decode('utf-8')
+                        },
+                    )
         finally:
             await container.delete(force=True)
