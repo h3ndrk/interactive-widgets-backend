@@ -15,7 +15,8 @@ class RoomConnection:
         self.rooms = rooms
         self.room_name = room_name
         self.websocket = websocket
-        self.logger = logging.getLogger(self.configuration['logger_name_room_connection'])
+        self.logger = logging.getLogger(
+            self.configuration['logger_name_room_connection'])
 
     async def __aenter__(self):
         try:
@@ -37,12 +38,17 @@ class RoomConnection:
         self.logger.debug(f'Attaching websocket {id(self.websocket)}...')
         room.attached_websockets.append(self.websocket)
 
-        if len(room.attached_websockets) == 1:
-            self.logger.debug('First attached websocket, instantiating...')
-            await room.instantiate()
-        else:
-            self.logger.debug('Waiting for instantiation...')
-            await room.state.wait_for_instantiate()
+        try:
+            if len(room.attached_websockets) == 1:
+                self.logger.debug('First attached websocket, instantiating...')
+                await room.instantiate()
+            else:
+                self.logger.debug('Waiting for instantiation...')
+                await room.state.wait_for_instantiate()
+        except:
+            self.logger.debug(f'Detaching websocket {id(self.websocket)}...')
+            room.attached_websockets.remove(self.websocket)
+            raise
 
         return room
 
@@ -62,5 +68,6 @@ class RoomConnection:
     async def _send_message(self, message):
         self.logger.debug('Sending message to all attached websockets...')
         for websocket in self.rooms[self.room_name].attached_websockets:
-            self.logger.debug(f'Sending message to websocket {id(websocket)}...')
+            self.logger.debug(
+                f'Sending message to websocket {id(websocket)}...')
             await websocket.send_json(message)
