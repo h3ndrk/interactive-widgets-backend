@@ -7,7 +7,7 @@ class DockerContext(contexts.Context):
 
     async def __aenter__(self):
         self.docker = aiodocker.Docker(
-            url=self.configuration['url'],
+            url=self.configuration.get('url', None),
         )
         await self.docker.__aenter__()
         self.logger.debug(await self.docker.version())
