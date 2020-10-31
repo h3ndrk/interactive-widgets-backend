@@ -44,12 +44,9 @@ class DockerInitialization(executors.DockerExecutor):
                         break
                     assert message.stream in [1, 2]
 
-                    await self.send_message(
-                        self.name,
-                        {
-                            'stdout' if message.stream == 1 else 'stderr': base64.b64encode(message.data).decode('utf-8')
-                        },
-                    )
+                    await self.send_message({
+                        'stdout' if message.stream == 1 else 'stderr': base64.b64encode(message.data).decode('utf-8')
+                    })
         finally:
             self.logger.debug('Deleting container...')
             await container.delete(force=True)

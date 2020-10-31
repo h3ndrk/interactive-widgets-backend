@@ -1,5 +1,6 @@
 import aiodocker
 import binascii
+import collections
 import logging
 import typing
 
@@ -19,6 +20,14 @@ class DockerRoom(rooms.Room):
 
         self.volume: typing.Optional[aiodocker.docker.DockerVolume] = None
 
+        def wrap_send_message(executor_name: str, send_message: collections.abc.Coroutine):
+            async def wrapper(message: typing.Any):
+                await send_message({
+                    'executor': executor_name,
+                    'message': message,
+                })
+            return wrapper
+
         self.executors = {
             executor_name: getattr(
                 executors,
@@ -27,7 +36,7 @@ class DockerRoom(rooms.Room):
                 self.context,
                 executor_configuration,
                 executor_name,
-                self._send_message,
+                wrap_send_message(executor_name, self.send_message),
             )
             for executor_name, executor_configuration in self.configuration['executors'].items()
         }
@@ -74,9 +83,3 @@ class DockerRoom(rooms.Room):
         finally:
             self.logger.info('Torn down.')
             self.state.set_torn_down()
-
-    async def _send_message(self, executor: str, message: typing.Any):
-        await self.send_message({
-            'executor': executor,
-            'message': message,
-        })
