@@ -1,14 +1,10 @@
-import click
-import aiodocker
-import aiohttp.web
 import asyncio
+import click
+import json
 import logging
-import typing
 
-from .room import Room
-from .docker_room import DockerRoom
-from .page import Page
-from .server import Server
+import inter_md.backend
+
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -17,13 +13,11 @@ logging.basicConfig(
 
 
 async def async_main(**arguments):
-    async with aiodocker.Docker() as docker:
-        server = Server(docker)
-        await server.run(arguments['host'], arguments['port'])
+    server = inter_md.backend.Server(json.load(arguments['configuration']))
+    await server.run()
 
 
 @click.command()
-@click.option('--host', default='*', help='Hostname to listen on', show_default=True)
-@click.option('--port', default=8080, help='Port to listen on', show_default=True)
+@click.argument('configuration', type=click.File())
 def main(**arguments):
     asyncio.run(async_main(**arguments))
