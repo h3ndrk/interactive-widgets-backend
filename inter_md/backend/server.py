@@ -12,7 +12,7 @@ class Server:
         self.docker = docker
         self.application = aiohttp.web.Application()
         self.pages: typing.Dict[str, Page] = {
-            '/test': Page(self.docker),
+            '/test/': Page(self.docker),
         }
         for url, page in self.pages.items():
             self.application.add_subapp(url, page.application)
