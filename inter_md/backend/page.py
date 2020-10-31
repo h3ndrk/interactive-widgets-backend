@@ -3,13 +3,13 @@ import aiohttp.web
 import json
 import typing
 
-import inter_md.backend.contexts
-import inter_md.backend.rooms
+from . import contexts
+from . import rooms
 
 
 class Page:
 
-    def __init__(self, context: inter_md.backend.contexts.Context, configuration: dict):
+    def __init__(self, context: contexts.Context, configuration: dict):
         self.context = context
         self.configuration = configuration
         self.application = aiohttp.web.Application()
@@ -18,10 +18,10 @@ class Page:
             # aiohttp.web.get('/red-ball.png', self._handle_red_ball),
             aiohttp.web.get('/', self._handle_websocket),
         ])
-        self.rooms: typing.Dict[str, inter_md.backend.rooms.Room] = {}
+        self.rooms: typing.Dict[str, rooms.Room] = {}
 
     def connect(self, room_name: str, websocket: aiohttp.web.WebSocketResponse):
-        return inter_md.backend.rooms.RoomConnection(
+        return rooms.RoomConnection(
             self.context,
             self.configuration,
             self.rooms,

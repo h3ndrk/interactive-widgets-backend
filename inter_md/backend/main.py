@@ -3,7 +3,7 @@ import click
 import json
 import logging
 
-import inter_md.backend
+from .. import backend
 
 
 logging.basicConfig(
@@ -13,7 +13,7 @@ logging.basicConfig(
 
 
 async def async_main(**arguments):
-    server = inter_md.backend.Server(json.load(arguments['configuration']))
+    server = backend.Server(json.load(arguments['configuration']))
     await server.run()
 
 

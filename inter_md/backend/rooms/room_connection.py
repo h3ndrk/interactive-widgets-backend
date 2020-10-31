@@ -2,13 +2,13 @@ import aiodocker
 import aiohttp.web
 import typing
 
-import inter_md.backend.contexts
-import inter_md.backend.rooms
+from .. import contexts
+from .. import rooms
 
 
 class RoomConnection:
 
-    def __init__(self, context: inter_md.backend.contexts.Context, configuration: dict, rooms: typing.Dict[str, inter_md.backend.rooms.Room], room_name: str, websocket: aiohttp.web.WebSocketResponse):
+    def __init__(self, context: contexts.Context, configuration: dict, rooms: typing.Dict[str, rooms.Room], room_name: str, websocket: aiohttp.web.WebSocketResponse):
         self.context = context
         self.configuration = configuration
         self.rooms = rooms
@@ -22,7 +22,7 @@ class RoomConnection:
         except KeyError:
             print(f'Creating room {self.room_name}...')
             room = getattr(
-                inter_md.backend.rooms,
+                rooms,
                 self.configuration['type'],
             )(
                 self.context,

@@ -3,16 +3,16 @@ import aiodocker
 import collections
 import typing
 
-import inter_md.backend.contexts
+from .. import contexts
 
 
 class DockerExecutor(abc.ABC):
 
-    def __init__(self, context: inter_md.backend.contexts.Context, configuration: dict, name: str, send_message: collections.abc.Coroutine):
+    def __init__(self, context: contexts.Context, configuration: dict, name: str, send_message: collections.abc.Coroutine):
         super().__init__()
         assert isinstance(
             context,
-            inter_md.backend.contexts.DockerContext,
+            contexts.DockerContext,
         )
 
         self.context = context

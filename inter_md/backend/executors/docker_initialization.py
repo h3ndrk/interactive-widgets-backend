@@ -5,10 +5,10 @@ import binascii
 import collections
 import typing
 
-import inter_md.backend.executors
+from .. import executors
 
 
-class DockerInitialization(inter_md.backend.executors.DockerExecutor):
+class DockerInitialization(executors.DockerExecutor):
 
     async def instantiate(self, *args, **kwargs):
         await super().instantiate(*args, **kwargs)

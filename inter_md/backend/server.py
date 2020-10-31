@@ -3,8 +3,8 @@ import aiohttp.web
 import asyncio
 import typing
 
-import inter_md.backend
-import inter_md.backend.contexts
+from .. import backend
+from . import contexts
 
 
 class Server:
@@ -13,12 +13,12 @@ class Server:
         self.configuration = configuration
 
     async def run(self):
-        async with getattr(inter_md.backend.contexts, self.configuration['context']['type'])(self.configuration['context']) as context:
+        async with getattr(contexts, self.configuration['context']['type'])(self.configuration['context']) as context:
             application = aiohttp.web.Application()
 
             pages = {}
             for url, page_configuration in self.configuration['pages'].items():
-                pages[url] = inter_md.backend.Page(context, page_configuration)
+                pages[url] = backend.Page(context, page_configuration)
                 application.add_subapp(url, pages[url].application)
 
             runner = aiohttp.web.AppRunner(

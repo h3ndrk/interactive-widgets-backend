@@ -5,13 +5,13 @@ import asyncio
 import logging
 import typing
 
-import inter_md.backend.contexts
-import inter_md.backend.rooms
+from .. import contexts
+from .. import rooms
 
 
 class Room(abc.ABC):
 
-    def __init__(self, context: inter_md.backend.contexts.Context, configuration: dict, name: str, send_message: collections.abc.Coroutine):
+    def __init__(self, context: contexts.Context, configuration: dict, name: str, send_message: collections.abc.Coroutine):
         super().__init__()
         self.context = context
         self.configuration = configuration
@@ -19,7 +19,7 @@ class Room(abc.ABC):
         self.send_message = send_message
         self.attached_websockets: typing.List[aiohttp.web.WebSocketResponse] = [
         ]
-        self.state = inter_md.backend.rooms.RoomStateMachine()
+        self.state = rooms.RoomStateMachine()
         self.logger = logging.getLogger(self.configuration['logger_name'])
 
     def __len__(self) -> int:
