@@ -15,6 +15,9 @@ class DockerTrigger(executors.DockerExecutor):
 
     async def _execute(self):
         try:
+            await self.send_message({
+                'triggered': True,
+            })
             await executors.docker_once(
                 self.context.docker,
                 self.name,
