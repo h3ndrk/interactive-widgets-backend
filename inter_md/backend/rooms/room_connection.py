@@ -46,8 +46,7 @@ class RoomConnection:
                 self.logger.debug('Waiting for instantiation...')
                 await room.state.wait_for_instantiate()
         except:
-            self.logger.debug(f'Detaching websocket {id(self.websocket)}...')
-            room.attached_websockets.remove(self.websocket)
+            await self.__aexit__()
             raise
 
         return room
@@ -62,8 +61,8 @@ class RoomConnection:
             self.logger.debug('Last websocket detached, tearing down...')
             room.state.clear_instantiated()
             await room.tear_down()
-            if len(room.attached_websockets) == 0:
-                del self.rooms[self.room_name]
+        if len(room.attached_websockets) == 0:
+            del self.rooms[self.room_name]
 
     async def _send_message(self, message):
         self.logger.debug('Sending message to all attached websockets...')
