@@ -16,12 +16,12 @@ class DockerAlways(executors.DockerExecutor):
         self.execute_task: typing.Optional[asyncio.Task] = None
         self.container: typing.Optional[aiodocker.docker.DockerContainer] = None
         self.stream: typing.Optional[aiodocker.stream.Stream] = None
+        self.should_terminate = False
 
     async def instantiate(self, *args, **kwargs):
         await super().instantiate(*args, **kwargs)
 
         self.execute_task = asyncio.create_task(self._execute())
-        self.should_terminate = False
 
     async def _execute(self):
         while not self.should_terminate:
