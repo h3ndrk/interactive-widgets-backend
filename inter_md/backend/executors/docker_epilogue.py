@@ -8,7 +8,7 @@ import typing
 from .. import executors
 
 
-class DockerCleanUp(executors.DockerExecutor):
+class DockerEpilogue(executors.DockerExecutor):
 
     async def tear_down(self):
         try:

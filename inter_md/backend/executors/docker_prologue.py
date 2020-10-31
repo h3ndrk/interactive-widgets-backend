@@ -8,7 +8,7 @@ import typing
 from .. import executors
 
 
-class DockerInitialization(executors.DockerExecutor):
+class DockerPrologue(executors.DockerExecutor):
 
     async def instantiate(self, *args, **kwargs):
         await super().instantiate(*args, **kwargs)
