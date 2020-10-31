@@ -13,7 +13,7 @@ class DockerExecutor(abc.ABC):
         self.volume = volume
 
     async def handle_message(self, message: typing.Any):
-        pass
+        raise NotImplementedError
 
     async def tear_down(self):
         pass
