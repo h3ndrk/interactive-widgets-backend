@@ -32,7 +32,7 @@ class DockerAlways(executors.DockerExecutor):
                         'Cmd': self.configuration['command'],
                         'Image': self.configuration['image'],
                         'AttachStdin': True,
-                        'Tty': self.configuration.get('with_tty', False),
+                        'Tty': self.configuration.get('enable_tty', False),
                         'OpenStdin': True,
                         'StdinOnce': True,
                         'HostConfig': {
