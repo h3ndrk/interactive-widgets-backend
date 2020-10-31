@@ -31,6 +31,10 @@ class DockerAlways(executors.DockerExecutor):
                     config={
                         'Cmd': self.configuration['command'],
                         'Image': self.configuration['image'],
+                        'AttachStdin': True,
+                        'Tty': self.configuration.get('with_tty', False),
+                        'OpenStdin': True,
+                        'StdinOnce': True,
                         'HostConfig': {
                             'Mounts': [
                                 {
@@ -49,7 +53,7 @@ class DockerAlways(executors.DockerExecutor):
                 await self.container.start()
 
                 self.logger.debug('Attaching to container...')
-                async with self.container.attach(stdout=True, stderr=True, logs=True) as stream:
+                async with self.container.attach(stdin=True, stdout=True, stderr=True, logs=True) as stream:
                     self.stream = stream
                     try:
                         while True:
