@@ -1,6 +1,7 @@
 import aiodocker
 import aiohttp.web
 import json
+import logging
 import typing
 
 from . import contexts
@@ -12,6 +13,7 @@ class Page:
     def __init__(self, context: contexts.Context, configuration: dict):
         self.context = context
         self.configuration = configuration
+        self.logger = logging.getLogger(self.configuration['logger_name_page'])
         self.application = aiohttp.web.Application()
         self.application.add_routes([
             # aiohttp.web.get('/index', self._handle_index),
@@ -32,23 +34,24 @@ class Page:
     async def _handle_websocket(self, request: aiohttp.web.Request):
         try:
             room_name = request.query['roomName']
-            print(f'Extracted room name: {room_name}')
+            self.logger.debug(f'Extracted room name: {room_name}')
         except KeyError:
             raise aiohttp.web.HTTPBadRequest(reason='Missing roomName')
 
         websocket = aiohttp.web.WebSocketResponse(heartbeat=10)
         await websocket.prepare(request)
-        print(f'Got websocket {id(websocket)} from {request.remote}')
+        self.logger.info(
+            f'Got websocket {id(websocket)} from {request.remote}')
 
         async with self.connect(room_name, websocket) as room:
             while True:
                 message = await websocket.receive()
                 if message.type == aiohttp.web.WSMsgType.TEXT:
                     parsed_message = json.loads(message.data)
-                    print(parsed_message)
+                    self.logger.debug(parsed_message)
                     await room.handle_message(parsed_message)
                 else:
-                    print(f'Unexpected message: {message}')
+                    self.logger.warning(f'Unexpected message: {message}')
                     break
 
         return websocket

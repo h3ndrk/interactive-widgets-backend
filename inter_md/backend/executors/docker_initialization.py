@@ -14,6 +14,7 @@ class DockerInitialization(executors.DockerExecutor):
         await super().instantiate(*args, **kwargs)
 
         try:
+            self.logger.debug('Creating container...')
             container = await self.context.docker.containers.create(
                 config={
                     'Cmd': self.configuration['command'],
@@ -32,8 +33,10 @@ class DockerInitialization(executors.DockerExecutor):
                 name=f'inter_md_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}'
             )
 
+            self.logger.debug('Starting container...')
             await container.start()
 
+            self.logger.debug('Attaching to container...')
             async with container.attach(stdout=True, stderr=True, logs=True) as stream:
                 while True:
                     message = await stream.read_out()
@@ -48,4 +51,5 @@ class DockerInitialization(executors.DockerExecutor):
                         },
                     )
         finally:
+            self.logger.debug('Deleting container...')
             await container.delete(force=True)

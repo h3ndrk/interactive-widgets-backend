@@ -6,14 +6,15 @@ import logging
 from .. import backend
 
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s  %(name)-17s  %(levelname)-8s  %(message)s',
-)
-
-
 async def async_main(**arguments):
-    server = backend.Server(json.load(arguments['configuration']))
+    configuration = json.load(arguments['configuration'])
+
+    logging.basicConfig(
+        level=configuration['logging_level'],
+        format='%(asctime)s  %(name)-20s  %(levelname)-8s  %(message)s',
+    )
+
+    server = backend.Server(configuration)
     await server.run()
 
 

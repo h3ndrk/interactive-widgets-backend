@@ -1,6 +1,7 @@
 import abc
 import aiodocker
 import collections
+import logging
 import typing
 
 from .. import contexts
@@ -19,6 +20,8 @@ class DockerExecutor(abc.ABC):
         self.configuration = configuration
         self.name = name
         self.send_message = send_message
+
+        self.logger = logging.getLogger(self.configuration['logger_name'])
         self.volume: typing.Optional[aiodocker.docker.DockerVolume] = None
 
     async def instantiate(self, volume: aiodocker.docker.DockerVolume):

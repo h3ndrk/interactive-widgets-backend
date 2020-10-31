@@ -1,5 +1,6 @@
 import aiodocker
 import aiohttp.web
+import logging
 import typing
 
 from .. import contexts
@@ -14,13 +15,14 @@ class RoomConnection:
         self.rooms = rooms
         self.room_name = room_name
         self.websocket = websocket
+        self.logger = logging.getLogger(self.configuration['logger_name_room_connection'])
 
     async def __aenter__(self):
         try:
-            print(f'Using existing room {self.room_name}...')
+            self.logger.debug(f'Using existing room {self.room_name}...')
             room = self.rooms[self.room_name]
         except KeyError:
-            print(f'Creating room {self.room_name}...')
+            self.logger.debug(f'Creating room {self.room_name}...')
             room = getattr(
                 rooms,
                 self.configuration['type'],
@@ -32,14 +34,14 @@ class RoomConnection:
             )
             self.rooms[self.room_name] = room
 
-        print(f'Attaching websocket {id(self.websocket)}...')
+        self.logger.debug(f'Attaching websocket {id(self.websocket)}...')
         room.attached_websockets.append(self.websocket)
 
         if len(room.attached_websockets) == 1:
-            print('First attached websocket, instantiating...')
+            self.logger.debug('First attached websocket, instantiating...')
             await room.instantiate()
         else:
-            print('Waiting for instantiation...')
+            self.logger.debug('Waiting for instantiation...')
             await room.state.wait_for_instantiate()
 
         return room
@@ -47,18 +49,18 @@ class RoomConnection:
     async def __aexit__(self, *args, **kwargs):
         room = self.rooms[self.room_name]
 
-        print(f'Detaching websocket {id(self.websocket)}...')
+        self.logger.debug(f'Detaching websocket {id(self.websocket)}...')
         room.attached_websockets.remove(self.websocket)
 
         if len(room.attached_websockets) == 0 and room.state.is_instantiated():
-            print('Last websocket detached, tearing down...')
+            self.logger.debug('Last websocket detached, tearing down...')
             room.state.clear_instantiated()
             await room.tear_down()
             if len(room.attached_websockets) == 0:
                 del self.rooms[self.room_name]
 
     async def _send_message(self, message):
-        print('Sending message to all attached websockets...')
+        self.logger.debug('Sending message to all attached websockets...')
         for websocket in self.rooms[self.room_name].attached_websockets:
-            print(f'Sending message to websocket {id(websocket)}...')
+            self.logger.debug(f'Sending message to websocket {id(websocket)}...')
             await websocket.send_json(message)

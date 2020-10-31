@@ -17,10 +17,10 @@ class Room(abc.ABC):
         self.configuration = configuration
         self.name = name
         self.send_message = send_message
+        self.logger = logging.getLogger(self.configuration['logger_name_room'])
         self.attached_websockets: typing.List[aiohttp.web.WebSocketResponse] = [
         ]
         self.state = rooms.RoomStateMachine()
-        self.logger = logging.getLogger(self.configuration['logger_name'])
 
     def __len__(self) -> int:
         return len(self.attached_websockets)
