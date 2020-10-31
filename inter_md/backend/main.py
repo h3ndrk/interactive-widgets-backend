@@ -8,6 +8,7 @@ import typing
 from .room import Room
 from .docker_room import DockerRoom
 from .page import Page
+from .server import Server
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -61,49 +62,51 @@ async def send_message(message):
 
 async def async_main(**arguments):
     async with aiodocker.Docker() as docker:
-        page = Page(docker)
-        websocket = MockedWebSocket([
-            {
-                'executor': 'init',
-                'message': 42,
-            },
-            {
-                'executor': 'init',
-                'message': 42,
-            },
-            {
-                'executor': 'init',
-                'message': 42,
-            },
-        ], 1)
-        websocket2 = MockedWebSocket([
-            {
-                'executor': 'init',
-                'message': 42,
-            },
-            {
-                'executor': 'init',
-                'message': 42,
-            },
-            {
-                'executor': 'init',
-                'message': 42,
-            },
-        ], 1)
-        async def task_function(websocket):
-            async with page.connect('cba', websocket) as room:
-                while True:
-                    try:
-                        message = await websocket.receive_json()
-                    except IndexError:
-                        break
-                    print(message)
-                    await room.handle_message(message)
+        server = Server(docker)
+        await server.run(arguments['host'], arguments['port'])
+        # page = Page(docker)
+        # websocket = MockedWebSocket([
+        #     {
+        #         'executor': 'init',
+        #         'message': 42,
+        #     },
+        #     {
+        #         'executor': 'init',
+        #         'message': 42,
+        #     },
+        #     {
+        #         'executor': 'init',
+        #         'message': 42,
+        #     },
+        # ], 1)
+        # websocket2 = MockedWebSocket([
+        #     {
+        #         'executor': 'init',
+        #         'message': 42,
+        #     },
+        #     {
+        #         'executor': 'init',
+        #         'message': 42,
+        #     },
+        #     {
+        #         'executor': 'init',
+        #         'message': 42,
+        #     },
+        # ], 1)
+        # async def task_function(websocket):
+        #     async with page.connect('cba', websocket) as room:
+        #         while True:
+        #             try:
+        #                 message = await websocket.receive_json()
+        #             except IndexError:
+        #                 break
+        #             print(message)
+        #             await room.handle_message(message)
         
-        task1 = asyncio.create_task(task_function(websocket))
-        task2 = asyncio.create_task(task_function(websocket2))
-        await task1
-        await task2
+        # task1 = asyncio.create_task(task_function(websocket))
+        # task2 = asyncio.create_task(task_function(websocket2))
+        # await task1
+        # await task2
         # room = DockerRoom(docker, 'abc', send_message)
         # await room.instantiate()
         # input()
@@ -127,5 +130,7 @@ async def async_main(**arguments):
 
 
 @click.command()
+@click.option('--host', default='*', help='Hostname to listen on', show_default=True)
+@click.option('--port', default=8080, help='Port to listen on', show_default=True)
 def main(**arguments):
     asyncio.run(async_main(**arguments))
