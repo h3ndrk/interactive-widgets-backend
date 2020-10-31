@@ -3,39 +3,42 @@ import aiohttp.web
 import asyncio
 import typing
 
-from .page import Page
+import inter_md.backend
+import inter_md.backend.contexts
 
 
 class Server:
 
-    def __init__(self, docker: aiodocker.Docker):
-        self.docker = docker
-        self.application = aiohttp.web.Application()
-        self.pages: typing.Dict[str, Page] = {
-            '/test/': Page(self.docker),
-        }
-        for url, page in self.pages.items():
-            self.application.add_subapp(url, page.application)
+    def __init__(self, configuration: dict):
+        self.configuration = configuration
 
-    async def run(self, host: str, port: int):
-        runner = aiohttp.web.AppRunner(
-            self.application,
-            handle_signals=True,
-            access_log=None,
-        )
-        await runner.setup()
+    async def run(self):
+        async with getattr(inter_md.backend.contexts, self.configuration['context']['type'])(self.configuration['context']) as context:
+            application = aiohttp.web.Application()
 
-        site = aiohttp.web.TCPSite(
-            runner=runner,
-            host=host,
-            port=port,
-        )
-        await site.start()
+            pages = {}
+            for url, page_configuration in self.configuration['pages'].items():
+                pages[url] = inter_md.backend.Page(context, page_configuration)
+                application.add_subapp(url, pages[url].application)
 
-        eternity_event = asyncio.Event()
-        try:
-            for site in runner.sites:
-                print(f'Listening on {str(site.name)}...')
-            await eternity_event.wait()
-        finally:
-            await runner.cleanup()
+            runner = aiohttp.web.AppRunner(
+                application,
+                handle_signals=True,
+                access_log=None,
+            )
+            await runner.setup()
+
+            site = aiohttp.web.TCPSite(
+                runner=runner,
+                host=self.configuration['host'],
+                port=self.configuration['port'],
+            )
+            await site.start()
+
+            eternity_event = asyncio.Event()
+            try:
+                for site in runner.sites:
+                    print(f'Listening on {str(site.name)}...')
+                await eternity_event.wait()
+            finally:
+                await runner.cleanup()

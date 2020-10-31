@@ -3,24 +3,31 @@ import aiohttp.web
 import json
 import typing
 
-from .room import Room
-from .room_connection import RoomConnection
+import inter_md.backend.contexts
+import inter_md.backend.rooms
 
 
 class Page:
 
-    def __init__(self, docker: aiodocker.Docker):
-        self.docker = docker
+    def __init__(self, context: inter_md.backend.contexts.Context, configuration: dict):
+        self.context = context
+        self.configuration = configuration
         self.application = aiohttp.web.Application()
         self.application.add_routes([
             # aiohttp.web.get('/index', self._handle_index),
             # aiohttp.web.get('/red-ball.png', self._handle_red_ball),
-            aiohttp.web.get('/', self._handle_websocket, name='websocket'),
+            aiohttp.web.get('/', self._handle_websocket),
         ])
-        self.rooms: typing.Dict[str, Room] = {}
+        self.rooms: typing.Dict[str, inter_md.backend.rooms.Room] = {}
 
     def connect(self, room_name: str, websocket: aiohttp.web.WebSocketResponse):
-        return RoomConnection(self.docker, self.rooms, room_name, websocket)
+        return inter_md.backend.rooms.RoomConnection(
+            self.context,
+            self.configuration,
+            self.rooms,
+            room_name,
+            websocket,
+        )
 
     async def _handle_websocket(self, request: aiohttp.web.Request):
         try:

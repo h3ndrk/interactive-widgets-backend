@@ -2,14 +2,15 @@ import aiodocker
 import aiohttp.web
 import typing
 
-from .room import Room
-from .docker_room import DockerRoom
+import inter_md.backend.contexts
+import inter_md.backend.rooms
 
 
 class RoomConnection:
-    def __init__(self, docker: aiodocker.Docker, rooms: typing.Dict[str, Room], room_name: str, websocket: aiohttp.web.WebSocketResponse):
-        # TODO: make docker member a static member of DockerRoom
-        self.docker = docker
+
+    def __init__(self, context: inter_md.backend.contexts.Context, configuration: dict, rooms: typing.Dict[str, inter_md.backend.rooms.Room], room_name: str, websocket: aiohttp.web.WebSocketResponse):
+        self.context = context
+        self.configuration = configuration
         self.rooms = rooms
         self.room_name = room_name
         self.websocket = websocket
@@ -20,8 +21,15 @@ class RoomConnection:
             room = self.rooms[self.room_name]
         except KeyError:
             print(f'Creating room {self.room_name}...')
-            # TODO: factor for returning new rooms with different types
-            room = DockerRoom(self.docker, self.room_name, self._send_message)
+            room = getattr(
+                inter_md.backend.rooms,
+                self.configuration['type'],
+            )(
+                self.context,
+                self.configuration,
+                self.room_name,
+                self._send_message,
+            )
             self.rooms[self.room_name] = room
 
         print(f'Attaching websocket {id(self.websocket)}...')
