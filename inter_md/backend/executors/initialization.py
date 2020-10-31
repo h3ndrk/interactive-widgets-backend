@@ -1,5 +1,6 @@
 import aiodocker
 import asyncio
+import base64
 import binascii
 import collections
 import typing
@@ -49,7 +50,7 @@ class Initialization(DockerExecutor):
                     await self.send_message(
                         self.name,
                         {
-                            'stdout' if message.stream == 1 else 'stderr': message.data.decode('utf-8')
+                            'stdout' if message.stream == 1 else 'stderr': base64.b64encode(message.data).decode('utf-8')
                         },
                     )
         finally:
