@@ -35,7 +35,7 @@ class DockerExecutor(abc.ABC):
     async def tear_down(self):
         pass
 
-    async def run_once(self):
+    async def _run_once(self):
         try:
             self.logger.debug('Creating container...')
             container = await self.context.docker.containers.create(

@@ -25,7 +25,7 @@ class DockerOnce(executors.DockerExecutor):
             await self.send_message({
                 'triggered': True,
             })
-            await self.run_once()
+            await self._run_once()
         except:
             await self.send_message({
                 'stderr': base64.b64encode(traceback.format_exc().encode('utf-8')).decode('utf-8'),

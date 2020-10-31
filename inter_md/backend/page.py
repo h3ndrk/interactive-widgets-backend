@@ -22,7 +22,7 @@ class Page:
         ])
         self.rooms: typing.Dict[str, rooms.Room] = {}
 
-    def connect(self, room_name: str, websocket: aiohttp.web.WebSocketResponse):
+    def _connect(self, room_name: str, websocket: aiohttp.web.WebSocketResponse):
         return rooms.RoomConnection(
             self.context,
             self.configuration,
@@ -43,7 +43,7 @@ class Page:
         self.logger.info(
             f'Got websocket {id(websocket)} from {request.remote}')
 
-        async with self.connect(room_name, websocket) as room:
+        async with self._connect(room_name, websocket) as room:
             while True:
                 message = await websocket.receive()
                 if message.type == aiohttp.web.WSMsgType.TEXT:
