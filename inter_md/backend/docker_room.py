@@ -46,6 +46,8 @@ class DockerRoom(Room):
                 await executor.instantiate(self.volume)
         except:
             self.logger.error('Failed to instantiate.')
+            import traceback
+            traceback.print_exc()
             # TODO: should we tear down here?
             # await self._tear_down()
             raise
