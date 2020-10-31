@@ -61,6 +61,7 @@ class RoomConnection:
             self.logger.debug('Last websocket detached, tearing down...')
             room.state.clear_instantiated()
             await room.tear_down()
+
         if len(room.attached_websockets) == 0:
             del self.rooms[self.room_name]
 
