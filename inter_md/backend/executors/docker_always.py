@@ -2,7 +2,6 @@ import aiodocker
 import asyncio
 import base64
 import binascii
-import traceback
 import typing
 
 from .. import executors
@@ -73,10 +72,20 @@ class DockerAlways(executors.DockerExecutor):
                 self.container = None
 
     async def handle_message(self, message: dict):
+        assert self.container is not None
         assert self.stream is not None
+        if 'stdin' in message:
         await self.stream.write_in(
             base64.b64decode(message['stdin'].encode('utf-8')),
         )
+        elif 'size' in message:
+            print(message['size'])
+            await self.container.resize(
+                h=message['size']['rows'],
+                w=message['size']['cols'],
+            )
+        else:
+            raise NotImplementedError
 
     async def tear_down(self):
         self.should_terminate = True
