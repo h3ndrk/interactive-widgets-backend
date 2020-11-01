@@ -20,8 +20,8 @@ class RoomConnection:
 
     async def __aenter__(self):
         try:
-            self.logger.debug(f'Using existing room {self.room_name}...')
             room = self.rooms[self.room_name]
+            self.logger.debug(f'Using existing room {self.room_name}...')
         except KeyError:
             self.logger.debug(f'Creating room {self.room_name}...')
             room = getattr(
@@ -63,6 +63,7 @@ class RoomConnection:
             await room.tear_down()
 
         if len(room.attached_websockets) == 0:
+            self.logger.debug('Deleting room...')
             del self.rooms[self.room_name]
 
     async def _send_message(self, message):
