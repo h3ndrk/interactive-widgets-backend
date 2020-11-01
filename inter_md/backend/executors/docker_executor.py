@@ -6,16 +6,17 @@ import collections
 import logging
 import typing
 
-from .. import contexts
+import inter_md.backend.contexts.context
+import inter_md.backend.contexts.docker_context
 
 
 class DockerExecutor(abc.ABC):
 
-    def __init__(self, context: contexts.Context, configuration: dict, name: str, send_message: collections.abc.Coroutine):
+    def __init__(self, context: inter_md.backend.contexts.context.Context, configuration: dict, name: str, send_message: collections.abc.Coroutine):
         super().__init__()
         assert isinstance(
             context,
-            contexts.DockerContext,
+            inter_md.backend.contexts.docker_context.DockerContext,
         )
 
         self.context = context

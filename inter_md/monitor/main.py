@@ -7,7 +7,9 @@ import threading
 import time
 import traceback
 
-from .. import monitor
+import inter_md.monitor.read
+import inter_md.monitor.wait_for_event
+import inter_md.monitor.write
 
 
 class StdinReader(threading.Thread):
@@ -21,7 +23,7 @@ class StdinReader(threading.Thread):
     def run(self):
         for line in sys.stdin:
             try:
-                monitor.write(self.path, json.loads(line))
+                inter_md.monitor.write.write(self.path, json.loads(line))
             except KeyboardInterrupt:
                 return
             except OSError as error:
@@ -43,7 +45,7 @@ def main(**arguments):
 
     while True:
         try:
-            monitor.read(pathlib.Path(arguments['file']))
+            inter_md.monitor.read.read(pathlib.Path(arguments['file']))
         except KeyboardInterrupt:
             return
         except OSError as error:
@@ -59,7 +61,7 @@ def main(**arguments):
             time.sleep(arguments['failure_timeout'])
             continue
         try:
-            monitor.wait_for_event(pathlib.Path(arguments['file']))
+            inter_md.monitor.wait_for_event.wait_for_event(pathlib.Path(arguments['file']))
             time.sleep(arguments['success_timeout'])
         except KeyboardInterrupt:
             return

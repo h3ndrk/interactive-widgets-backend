@@ -3,7 +3,7 @@ import click
 import json
 import logging
 
-from .. import backend
+import inter_md.backend.server
 
 
 async def async_main(**arguments):
@@ -14,7 +14,7 @@ async def async_main(**arguments):
         format='%(asctime)s  %(name)-20s  %(levelname)-8s  %(message)s',
     )
 
-    server = backend.Server(configuration)
+    server = inter_md.backend.server.Server(configuration)
     await server.run()
 
 

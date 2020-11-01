@@ -4,8 +4,8 @@ import asyncio
 import logging
 import typing
 
-from .. import backend
-from . import contexts
+import inter_md.backend.page
+import inter_md.backend.contexts.get
 
 
 class Server:
@@ -15,14 +15,14 @@ class Server:
         self.logger = logging.getLogger(self.configuration['logger_name'])
 
     async def run(self):
-        async with getattr(contexts, self.configuration['context']['type'])(self.configuration['context']) as context:
+        async with inter_md.backend.contexts.get.get(self.configuration['context']['type'])(self.configuration['context']) as context:
             application = aiohttp.web.Application()
 
             self.logger.debug('Adding pages...')
             pages = {}
             for url, page_configuration in self.configuration['pages'].items():
                 self.logger.debug(f'Adding page {url}...')
-                pages[url] = backend.Page(context, page_configuration)
+                pages[url] = inter_md.backend.page.Page(context, page_configuration)
                 application.add_subapp(url, pages[url].application)
             self.logger.debug('Pages added.')
 

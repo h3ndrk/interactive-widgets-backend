@@ -4,13 +4,14 @@ import json
 import logging
 import typing
 
-from . import contexts
-from . import rooms
+import inter_md.backend.contexts.context
+import inter_md.backend.rooms.room
+import inter_md.backend.rooms.room_connection
 
 
 class Page:
 
-    def __init__(self, context: contexts.Context, configuration: dict):
+    def __init__(self, context: inter_md.backend.contexts.context.Context, configuration: dict):
         self.context = context
         self.configuration = configuration
         self.logger = logging.getLogger(self.configuration['logger_name_page'])
@@ -20,10 +21,10 @@ class Page:
             # aiohttp.web.get('/red-ball.png', self._handle_red_ball),
             aiohttp.web.get('/ws', self._handle_websocket),
         ])
-        self.rooms: typing.Dict[str, rooms.Room] = {}
+        self.rooms: typing.Dict[str, inter_md.backend.rooms.room.Room] = {}
 
     def _connect(self, room_name: str, websocket: aiohttp.web.WebSocketResponse):
-        return rooms.RoomConnection(
+        return inter_md.backend.rooms.room_connection.RoomConnection(
             self.context,
             self.configuration,
             self.rooms,

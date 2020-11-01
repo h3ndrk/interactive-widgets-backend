@@ -1,9 +1,9 @@
 import aiodocker
 
-from .. import contexts
+import inter_md.backend.contexts.context
 
 
-class DockerContext(contexts.Context):
+class DockerContext(inter_md.backend.contexts.context.Context):
 
     async def __aenter__(self):
         self.docker = aiodocker.Docker(

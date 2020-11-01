@@ -4,18 +4,18 @@ import collections
 import logging
 import typing
 
-from .. import contexts
-from .. import executors
-from .. import rooms
+import inter_md.backend.contexts.docker_context
+import inter_md.backend.executors.get
+import inter_md.backend.rooms.room
 
 
-class DockerRoom(rooms.Room):
+class DockerRoom(inter_md.backend.rooms.room.Room):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         assert isinstance(
             self.context,
-            contexts.DockerContext,
+            inter_md.backend.contexts.docker_context.DockerContext,
         )
 
         self.volume: typing.Optional[aiodocker.docker.DockerVolume] = None
@@ -29,9 +29,8 @@ class DockerRoom(rooms.Room):
             return wrapper
 
         self.executors = {
-            executor_name: getattr(
-                executors,
-                executor_configuration['type'],
+            executor_name: inter_md.backend.executors.get.get(
+                f'docker.{executor_configuration["type"]}',
             )(
                 self.context,
                 executor_configuration,

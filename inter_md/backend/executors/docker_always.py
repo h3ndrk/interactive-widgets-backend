@@ -4,10 +4,10 @@ import base64
 import binascii
 import typing
 
-from .. import executors
+import inter_md.backend.executors.docker_executor
 
 
-class DockerAlways(executors.DockerExecutor):
+class DockerAlways(inter_md.backend.executors.docker_executor.DockerExecutor):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -75,9 +75,9 @@ class DockerAlways(executors.DockerExecutor):
         assert self.container is not None
         assert self.stream is not None
         if 'stdin' in message:
-        await self.stream.write_in(
-            base64.b64decode(message['stdin'].encode('utf-8')),
-        )
+            await self.stream.write_in(
+                base64.b64decode(message['stdin'].encode('utf-8')),
+            )
         elif 'size' in message:
             print(message['size'])
             await self.container.resize(
