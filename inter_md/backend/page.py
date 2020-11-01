@@ -18,7 +18,7 @@ class Page:
         self.application.add_routes([
             # aiohttp.web.get('/index', self._handle_index),
             # aiohttp.web.get('/red-ball.png', self._handle_red_ball),
-            aiohttp.web.get('/', self._handle_websocket),
+            aiohttp.web.get('/ws', self._handle_websocket),
         ])
         self.rooms: typing.Dict[str, rooms.Room] = {}
 
