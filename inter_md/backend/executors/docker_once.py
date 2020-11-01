@@ -1,16 +1,9 @@
-import aiodocker
 import asyncio
 import base64
-import binascii
-import collections
-import logging
 import traceback
 import typing
 
 from .. import executors
-
-
-
 
 
 class DockerOnce(executors.DockerExecutor):
@@ -23,12 +16,16 @@ class DockerOnce(executors.DockerExecutor):
     async def _execute(self):
         try:
             await self.send_message({
-                'triggered': True,
+                'type': 'started',
             })
             await self._run_once()
+            await self.send_message({
+                'type': 'finished',
+            })
         except:
             await self.send_message({
-                'stderr': base64.b64encode(traceback.format_exc().encode('utf-8')).decode('utf-8'),
+                'type': 'errored',
+                'message': base64.b64encode(traceback.format_exc().encode('utf-8')).decode('utf-8'),
             })
         finally:
             self.execute_task = None

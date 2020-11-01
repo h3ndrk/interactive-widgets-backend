@@ -68,6 +68,7 @@ class DockerExecutor(abc.ABC):
                     assert message.stream in [1, 2]
 
                     await self.send_message({
+                        'type': 'output',
                         'stdout' if message.stream == 1 else 'stderr': base64.b64encode(message.data).decode('utf-8')
                     })
         finally:
