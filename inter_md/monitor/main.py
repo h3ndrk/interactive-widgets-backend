@@ -1,7 +1,7 @@
 import base64
-import click
 import json
 import pathlib
+import signal
 import sys
 import threading
 import time
@@ -24,7 +24,7 @@ class StdinReader(threading.Thread):
         for line in sys.stdin:
             try:
                 inter_md.monitor.write.write(self.path, json.loads(line))
-            except KeyboardInterrupt:
+            except SystemExit:
                 return
             except OSError as error:
                 sys.stdout.write(
@@ -36,37 +36,45 @@ class StdinReader(threading.Thread):
                 )
 
 
-@click.command()
-@click.option('--success-timeout', default=0.1, help='Timeout between monitoring event and read operation in seconds', show_default=True)
-@click.option('--failure-timeout', default=5.0, help='Timeout between a failure and next read operation in seconds', show_default=True)
-@click.argument('file', type=click.Path())
-def main(**arguments):
-    StdinReader(pathlib.Path(arguments['file'])).start()
+def main():
+    if len(sys.argv) != 4:
+        sys.stderr.write(
+            f'Usage: {sys.argv[0]} FILE SUCCESS_TIMEOUT FAILURE_TIMEOUT\n')
+        sys.exit(1)
+
+    signal.signal(signal.SIGINT, lambda *unused: sys.exit())
+    signal.signal(signal.SIGTERM, lambda *unused: sys.exit())
+
+    file = sys.argv[1]
+    success_timeout = float(sys.argv[2])
+    failure_timeout = float(sys.argv[3])
+
+    StdinReader(pathlib.Path(file)).start()
 
     while True:
         try:
-            inter_md.monitor.read.read(pathlib.Path(arguments['file']))
-        except KeyboardInterrupt:
+            inter_md.monitor.read.read(pathlib.Path(file))
+        except SystemExit:
             return
         except OSError as error:
             sys.stdout.write(
                 f'{{"error":"{base64.b64encode(error.strerror.encode("utf-8")).decode("utf-8")}"}}\n',
             )
-            time.sleep(arguments['failure_timeout'])
+            time.sleep(failure_timeout)
             continue
         except:
             sys.stdout.write(
                 f'{{"error":"{base64.b64encode(traceback.format_exc().encode("utf-8")).decode("utf-8")}"}}\n',
             )
-            time.sleep(arguments['failure_timeout'])
+            time.sleep(failure_timeout)
             continue
         try:
-            inter_md.monitor.wait_for_event.wait_for_event(pathlib.Path(arguments['file']))
-            time.sleep(arguments['success_timeout'])
-        except KeyboardInterrupt:
+            inter_md.monitor.wait_for_event.wait_for_event(pathlib.Path(file))
+            time.sleep(success_timeout)
+        except SystemExit:
             return
         except:
             sys.stdout.write(
                 f'{{"error":"{base64.b64encode(traceback.format_exc().encode("utf-8")).decode("utf-8")}"}}\n',
             )
-            time.sleep(arguments['failure_timeout'])
+            time.sleep(failure_timeout)
