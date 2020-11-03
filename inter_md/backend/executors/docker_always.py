@@ -48,13 +48,12 @@ class DockerAlways(inter_md.backend.executors.docker_executor.DockerExecutor):
                     name=f'inter_md_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}'
                 )
 
-                self.logger.debug('Starting container...')
-                await self.container.start()
-
                 self.logger.debug('Attaching to container...')
                 async with self.container.attach(stdin=True, stdout=True, stderr=True, logs=True) as stream:
                     self.stream = stream
                     try:
+                        self.logger.debug('Starting container...')
+                        await self.container.start()
                         while True:
                             message = await stream.read_out()
                             if message is None:
@@ -62,6 +61,7 @@ class DockerAlways(inter_md.backend.executors.docker_executor.DockerExecutor):
                             assert message.stream in [1, 2]
 
                             await self.send_message({
+                                'type': 'output',
                                 'stdout' if message.stream == 1 else 'stderr': base64.b64encode(message.data).decode('utf-8')
                             })
                     finally:
