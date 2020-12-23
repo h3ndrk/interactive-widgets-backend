@@ -121,6 +121,16 @@ class Page:
             script_head = self.soup.new_tag('script')
             script_head['src'] = 'TerminalWidget.js'
             self.soup.head.append(script_head)
+            script_head_xterm = self.soup.new_tag('script')
+            script_head_xterm['src'] = 'node_modules/xterm/lib/xterm.js'
+            self.soup.head.append(script_head_xterm)
+            script_head_xterm_fit = self.soup.new_tag('script')
+            script_head_xterm_fit['src'] = 'node_modules/xterm-addon-fit/lib/xterm-addon-fit.js'
+            self.soup.head.append(script_head_xterm_fit)
+            style_head_xterm = self.soup.new_tag('link')
+            style_head_xterm['rel'] = 'stylesheet'
+            style_head_xterm['href'] = 'node_modules/xterm/css/xterm.css'
+            self.soup.head.append(style_head_xterm)
             self.required_files.append('TerminalWidget.js')
 
     def replace_text_editor(self, widget_element):
@@ -141,6 +151,13 @@ class Page:
             script_head = self.soup.new_tag('script')
             script_head['src'] = 'TextEditorWidget.js'
             self.soup.head.append(script_head)
+            script_head_codemirror = self.soup.new_tag('script')
+            script_head_codemirror['src'] = 'node_modules/codemirror/lib/codemirror.js'
+            self.soup.head.append(script_head_codemirror)
+            style_head_codemirror = self.soup.new_tag('link')
+            style_head_codemirror['rel'] = 'stylesheet'
+            style_head_codemirror['href'] = 'node_modules/codemirror/lib/codemirror.css'
+            self.soup.head.append(style_head_codemirror)
             self.required_files.append('TextEditorWidget.js')
 
     def replace_text_viewer(self, widget_element):
