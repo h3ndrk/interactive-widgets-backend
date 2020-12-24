@@ -1,5 +1,7 @@
+import binascii
 import bs4
 import click
+import hashlib
 import json
 import logging
 import os
@@ -24,6 +26,12 @@ class Page:
 
     def relative(self, file: pathlib.PurePosixPath):
         return pathlib.PurePosixPath(os.path.relpath(file, self.url))
+
+    def hash_inputs(self, *args):
+        return hashlib.sha256(b'-'.join([
+            binascii.hexlify(arg.encode("utf-8"))
+            for arg in args
+        ])).hexdigest()
 
     def add_room_connection(self):
         script_body = self.soup.new_tag('script')
@@ -54,29 +62,29 @@ class Page:
         return re.sub(r'[^0-9a-zA-Z\.\-]', lambda match: f'\\u{{{hex(ord(match.group(0)))[2:]}}}', data)
 
     def replace_widgets(self):
-        for widget_element in self.soup.find_all('x-button'):
-            self.replace_button(widget_element)
-        for widget_element in self.soup.find_all('x-image-viewer'):
-            self.replace_image_viewer(widget_element)
-        for widget_element in self.soup.find_all('x-terminal'):
-            self.replace_terminal(widget_element)
-        for widget_element in self.soup.find_all('x-text-editor'):
-            self.replace_text_editor(widget_element)
-        for widget_element in self.soup.find_all('x-text-viewer'):
-            self.replace_text_viewer(widget_element)
+        for index, widget_element in enumerate(self.soup.find_all('x-button')):
+            self.replace_button(index, widget_element)
+        for index, widget_element in enumerate(self.soup.find_all('x-image-viewer')):
+            self.replace_image_viewer(index, widget_element)
+        for index, widget_element in enumerate(self.soup.find_all('x-terminal')):
+            self.replace_terminal(index, widget_element)
+        for index, widget_element in enumerate(self.soup.find_all('x-text-editor')):
+            self.replace_text_editor(index, widget_element)
+        for index, widget_element in enumerate(self.soup.find_all('x-text-viewer')):
+            self.replace_text_viewer(index, widget_element)
 
-    def replace_button(self, widget_element):
+    def replace_button(self, index: int, widget_element):
         name = widget_element['name'] if widget_element.has_attr(
-            'name') else str(uuid.uuid4())
+            'name') else self.hash_inputs('button', str(index), widget_element['command'], widget_element.text)
         assert re.fullmatch(r'[0-9a-z\-]+', name) is not None
         command = self.sanitize_javascript_input(widget_element['command'])
         label = self.sanitize_javascript_input(widget_element.text)
         new_element = self.soup.new_tag('div')
-        new_element['id'] = f'widget-button--{name}'
+        new_element['id'] = f'widget-button-{name}'
         widget_element.replace_with(new_element)
         script_body = self.soup.new_tag('script')
         script_body.append(
-            f'roomConnection.subscribe(new ButtonWidget(document.getElementById("widget-button--{name}"), roomConnection.getSendMessageCallback("{name}"), "{command}", "{label}"));',
+            f'roomConnection.subscribe(new ButtonWidget(document.getElementById("widget-button-{name}"), roomConnection.getSendMessageCallback("{name}"), "{command}", "{label}"));',
         )
         self.soup.body.append(script_body)
         if self.relative('/ButtonWidget.js') not in self.required_files:
@@ -85,18 +93,18 @@ class Page:
             self.soup.head.append(script_head)
             self.required_files.append(self.relative('/ButtonWidget.js'))
 
-    def replace_image_viewer(self, widget_element):
+    def replace_image_viewer(self, index: int, widget_element):
         name = widget_element['name'] if widget_element.has_attr(
-            'name') else str(uuid.uuid4())
+            'name') else self.hash_inputs('image_viewer', str(index), widget_element['file'], widget_element['mime'])
         assert re.fullmatch(r'[0-9a-z\-]+', name) is not None
         file = self.sanitize_javascript_input(widget_element['file'])
         mime = self.sanitize_javascript_input(widget_element['mime'])
         new_element = self.soup.new_tag('div')
-        new_element['id'] = f'widget-image-viewer--{name}'
+        new_element['id'] = f'widget-image-viewer-{name}'
         widget_element.replace_with(new_element)
         script_body = self.soup.new_tag('script')
         script_body.append(
-            f'roomConnection.subscribe(new ImageViewerWidget(document.getElementById("widget-image-viewer--{name}"), roomConnection.getSendMessageCallback("{name}"), "{file}", "{mime}"));',
+            f'roomConnection.subscribe(new ImageViewerWidget(document.getElementById("widget-image-viewer-{name}"), roomConnection.getSendMessageCallback("{name}"), "{file}", "{mime}"));',
         )
         self.soup.body.append(script_body)
         if self.relative('/ImageViewerWidget.js') not in self.required_files:
@@ -105,18 +113,18 @@ class Page:
             self.soup.head.append(script_head)
             self.required_files.append(self.relative('/ImageViewerWidget.js'))
 
-    def replace_terminal(self, widget_element):
+    def replace_terminal(self, index: int, widget_element):
         name = widget_element['name'] if widget_element.has_attr(
-            'name') else str(uuid.uuid4())
+            'name') else self.hash_inputs('terminal', str(index), widget_element['working-directory'])
         assert re.fullmatch(r'[0-9a-z\-]+', name) is not None
         working_directory = self.sanitize_javascript_input(
             widget_element['working-directory'])
         new_element = self.soup.new_tag('div')
-        new_element['id'] = f'widget-terminal--{name}'
+        new_element['id'] = f'widget-terminal-{name}'
         widget_element.replace_with(new_element)
         script_body = self.soup.new_tag('script')
         script_body.append(
-            f'roomConnection.subscribe(new TerminalWidget(document.getElementById("widget-terminal--{name}"), roomConnection.getSendMessageCallback("{name}"), "{working_directory}"));',
+            f'roomConnection.subscribe(new TerminalWidget(document.getElementById("widget-terminal-{name}"), roomConnection.getSendMessageCallback("{name}"), "{working_directory}"));',
         )
         self.soup.body.append(script_body)
         if self.relative('/TerminalWidget.js') not in self.required_files:
@@ -153,17 +161,17 @@ class Page:
                 '/node_modules/xterm/css/xterm.css',
             ))
 
-    def replace_text_editor(self, widget_element):
+    def replace_text_editor(self, index: int, widget_element):
         name = widget_element['name'] if widget_element.has_attr(
-            'name') else str(uuid.uuid4())
+            'name') else self.hash_inputs('text_editor', str(index), widget_element['file'])
         assert re.fullmatch(r'[0-9a-z\-]+', name) is not None
         file = self.sanitize_javascript_input(widget_element['file'])
         new_element = self.soup.new_tag('div')
-        new_element['id'] = f'widget-text-editor--{name}'
+        new_element['id'] = f'widget-text-editor-{name}'
         widget_element.replace_with(new_element)
         script_body = self.soup.new_tag('script')
         script_body.append(
-            f'roomConnection.subscribe(new TextEditorWidget(document.getElementById("widget-text-editor--{name}"), roomConnection.getSendMessageCallback("{name}"), "{file}"));',
+            f'roomConnection.subscribe(new TextEditorWidget(document.getElementById("widget-text-editor-{name}"), roomConnection.getSendMessageCallback("{name}"), "{file}"));',
         )
         self.soup.body.append(script_body)
         if self.relative('/TextEditorWidget.js') not in self.required_files:
@@ -191,17 +199,17 @@ class Page:
                 '/node_modules/codemirror/lib/codemirror.css',
             ))
 
-    def replace_text_viewer(self, widget_element):
+    def replace_text_viewer(self, index: int, widget_element):
         name = widget_element['name'] if widget_element.has_attr(
-            'name') else str(uuid.uuid4())
+            'name') else self.hash_inputs('text_viewer', str(index), widget_element['file'])
         assert re.fullmatch(r'[0-9a-z\-]+', name) is not None
         file = self.sanitize_javascript_input(widget_element['file'])
         new_element = self.soup.new_tag('div')
-        new_element['id'] = f'widget-text-viewer--{name}'
+        new_element['id'] = f'widget-text-viewer-{name}'
         widget_element.replace_with(new_element)
         script_body = self.soup.new_tag('script')
         script_body.append(
-            f'roomConnection.subscribe(new TextViewerWidget(document.getElementById("widget-text-viewer--{name}"), roomConnection.getSendMessageCallback("{name}"), "{file}"));',
+            f'roomConnection.subscribe(new TextViewerWidget(document.getElementById("widget-text-viewer-{name}"), roomConnection.getSendMessageCallback("{name}"), "{file}"));',
         )
         self.soup.body.append(script_body)
         if self.relative('/TextViewerWidget.js') not in self.required_files:
