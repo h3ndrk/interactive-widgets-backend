@@ -2,32 +2,37 @@ import bs4
 import click
 import json
 import logging
-import marko
+import os
 import pathlib
 import re
 import subprocess
+import typing
 import uuid
 
 
 class Page:
 
-    def __init__(self, contents: bytes):
+    def __init__(self, url: pathlib.PurePosixPath, contents: bytes):
+        self.url = url
+        assert os.sep == '/', 'Assumption: posix paths'
         self.soup = bs4.BeautifulSoup(contents, 'html5lib')
-        self.setup_widgets_in_head = []
-        self.required_files = []
+        self.required_files: typing.List[pathlib.PurePosixPath] = []
         self.add_room_connection()
         self.add_meta_tags()
         self.add_title()
         self.replace_widgets()
+
+    def relative(self, file: pathlib.PurePosixPath):
+        return pathlib.PurePosixPath(os.path.relpath(file, self.url))
 
     def add_room_connection(self):
         script_body = self.soup.new_tag('script')
         script_body.append('const roomConnection = new RoomConnection();')
         self.soup.body.insert(0, script_body)
         script_head = self.soup.new_tag('script')
-        script_head['src'] = 'RoomConnection.js'
+        script_head['src'] = self.relative('/RoomConnection.js')
         self.soup.head.append(script_head)
-        self.required_files.append('RoomConnection.js')
+        self.required_files.append(self.relative('/RoomConnection.js'))
 
     def add_meta_tags(self):
         meta_charset = self.soup.new_tag('meta')
@@ -74,12 +79,11 @@ class Page:
             f'roomConnection.subscribe(new ButtonWidget(document.getElementById("widget-button--{name}"), roomConnection.getSendMessageCallback("{name}"), "{command}", "{label}"));',
         )
         self.soup.body.append(script_body)
-        if 'ButtonWidget.js' not in self.setup_widgets_in_head:
-            self.setup_widgets_in_head.append('ButtonWidget.js')
+        if self.relative('/ButtonWidget.js') not in self.required_files:
             script_head = self.soup.new_tag('script')
-            script_head['src'] = 'ButtonWidget.js'
+            script_head['src'] = self.relative('/ButtonWidget.js')
             self.soup.head.append(script_head)
-            self.required_files.append('ButtonWidget.js')
+            self.required_files.append(self.relative('/ButtonWidget.js'))
 
     def replace_image_viewer(self, widget_element):
         name = widget_element['name'] if widget_element.has_attr(
@@ -95,12 +99,11 @@ class Page:
             f'roomConnection.subscribe(new ImageViewerWidget(document.getElementById("widget-image-viewer--{name}"), roomConnection.getSendMessageCallback("{name}"), "{file}", "{mime}"));',
         )
         self.soup.body.append(script_body)
-        if 'ImageViewerWidget.js' not in self.setup_widgets_in_head:
-            self.setup_widgets_in_head.append('ImageViewerWidget.js')
+        if self.relative('/ImageViewerWidget.js') not in self.required_files:
             script_head = self.soup.new_tag('script')
-            script_head['src'] = 'ImageViewerWidget.js'
+            script_head['src'] = self.relative('/ImageViewerWidget.js')
             self.soup.head.append(script_head)
-            self.required_files.append('ImageViewerWidget.js')
+            self.required_files.append(self.relative('/ImageViewerWidget.js'))
 
     def replace_terminal(self, widget_element):
         name = widget_element['name'] if widget_element.has_attr(
@@ -116,22 +119,39 @@ class Page:
             f'roomConnection.subscribe(new TerminalWidget(document.getElementById("widget-terminal--{name}"), roomConnection.getSendMessageCallback("{name}"), "{working_directory}"));',
         )
         self.soup.body.append(script_body)
-        if 'TerminalWidget.js' not in self.setup_widgets_in_head:
-            self.setup_widgets_in_head.append('TerminalWidget.js')
+        if self.relative('/TerminalWidget.js') not in self.required_files:
             script_head = self.soup.new_tag('script')
-            script_head['src'] = 'TerminalWidget.js'
+            script_head['src'] = self.relative('/TerminalWidget.js')
             self.soup.head.append(script_head)
+            self.required_files.append(self.relative('/TerminalWidget.js'))
+
             script_head_xterm = self.soup.new_tag('script')
-            script_head_xterm['src'] = 'node_modules/xterm/lib/xterm.js'
+            script_head_xterm['src'] = self.relative(
+                '//node_modules/xterm/lib/xterm.js',
+            )
             self.soup.head.append(script_head_xterm)
+            self.required_files.append(self.relative(
+                '//node_modules/xterm/lib/xterm.js',
+            ))
+
             script_head_xterm_fit = self.soup.new_tag('script')
-            script_head_xterm_fit['src'] = 'node_modules/xterm-addon-fit/lib/xterm-addon-fit.js'
+            script_head_xterm_fit['src'] = self.relative(
+                '/node_modules/xterm-addon-fit/lib/xterm-addon-fit.js',
+            )
             self.soup.head.append(script_head_xterm_fit)
+            self.required_files.append(self.relative(
+                '/node_modules/xterm-addon-fit/lib/xterm-addon-fit.js',
+            ))
+
             style_head_xterm = self.soup.new_tag('link')
             style_head_xterm['rel'] = 'stylesheet'
-            style_head_xterm['href'] = 'node_modules/xterm/css/xterm.css'
+            style_head_xterm['href'] = self.relative(
+                '/node_modules/xterm/css/xterm.css',
+            )
             self.soup.head.append(style_head_xterm)
-            self.required_files.append('TerminalWidget.js')
+            self.required_files.append(self.relative(
+                '/node_modules/xterm/css/xterm.css',
+            ))
 
     def replace_text_editor(self, widget_element):
         name = widget_element['name'] if widget_element.has_attr(
@@ -146,19 +166,30 @@ class Page:
             f'roomConnection.subscribe(new TextEditorWidget(document.getElementById("widget-text-editor--{name}"), roomConnection.getSendMessageCallback("{name}"), "{file}"));',
         )
         self.soup.body.append(script_body)
-        if 'TextEditorWidget.js' not in self.setup_widgets_in_head:
-            self.setup_widgets_in_head.append('TextEditorWidget.js')
+        if self.relative('/TextEditorWidget.js') not in self.required_files:
             script_head = self.soup.new_tag('script')
-            script_head['src'] = 'TextEditorWidget.js'
+            script_head['src'] = self.relative('/TextEditorWidget.js')
             self.soup.head.append(script_head)
+            self.required_files.append(self.relative('/TextEditorWidget.js'))
+
             script_head_codemirror = self.soup.new_tag('script')
-            script_head_codemirror['src'] = 'node_modules/codemirror/lib/codemirror.js'
+            script_head_codemirror['src'] = self.relative(
+                '/node_modules/codemirror/lib/codemirror.js',
+            )
             self.soup.head.append(script_head_codemirror)
+            self.required_files.append(self.relative(
+                '/node_modules/codemirror/lib/codemirror.js',
+            ))
+
             style_head_codemirror = self.soup.new_tag('link')
             style_head_codemirror['rel'] = 'stylesheet'
-            style_head_codemirror['href'] = 'node_modules/codemirror/lib/codemirror.css'
+            style_head_codemirror['href'] = self.relative(
+                '/node_modules/codemirror/lib/codemirror.css',
+            )
             self.soup.head.append(style_head_codemirror)
-            self.required_files.append('TextEditorWidget.js')
+            self.required_files.append(self.relative(
+                '/node_modules/codemirror/lib/codemirror.css',
+            ))
 
     def replace_text_viewer(self, widget_element):
         name = widget_element['name'] if widget_element.has_attr(
@@ -173,12 +204,11 @@ class Page:
             f'roomConnection.subscribe(new TextViewerWidget(document.getElementById("widget-text-viewer--{name}"), roomConnection.getSendMessageCallback("{name}"), "{file}"));',
         )
         self.soup.body.append(script_body)
-        if 'TextViewerWidget.js' not in self.setup_widgets_in_head:
-            self.setup_widgets_in_head.append('TextViewerWidget.js')
+        if self.relative('/TextViewerWidget.js') not in self.required_files:
             script_head = self.soup.new_tag('script')
-            script_head['src'] = 'TextViewerWidget.js'
+            script_head['src'] = self.relative('/TextViewerWidget.js')
             self.soup.head.append(script_head)
-            self.required_files.append('TextViewerWidget.js')
+            self.required_files.append(self.relative('/TextViewerWidget.js'))
 
 
 @click.command()
@@ -197,8 +227,9 @@ def main(**arguments):
         args=['pandoc', '--from', 'markdown', '--to', 'html5', page_file], stdout=subprocess.PIPE)
     stdout, _ = process.communicate()
     print(stdout)
-    page = Page(stdout)
+    page = Page(pathlib.PurePosixPath('/test/foo/bar'), stdout)
     print(page.soup.prettify())
+    print(page.url, page.url.as_uri())
     # print(page.soup.encode(formatter='html5'))
     # soup = bs4.BeautifulSoup(stdout, 'html5lib')
     # print(soup.find_all('x-terminal'))
