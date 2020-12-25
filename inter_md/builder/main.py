@@ -35,7 +35,9 @@ class Page:
 
     def add_room_connection(self):
         script_body = self.soup.new_tag('script')
-        script_body.append('const roomConnection = new RoomConnection();')
+        script_body.append(
+            f'const roomConnection = new RoomConnection("{self.sanitize_javascript_input(self.relative("/ws"))}");',
+        )
         self.soup.body.insert(0, script_body)
         script_head = self.soup.new_tag('script')
         script_head['src'] = self.relative('/RoomConnection.js')
