@@ -4,18 +4,18 @@ import collections
 import logging
 import typing
 
-import inter_md.backend.contexts.docker_context
-import inter_md.backend.executors.get
-import inter_md.backend.rooms.room
+import interactive_widgets.backend.contexts.docker_context
+import interactive_widgets.backend.executors.get
+import interactive_widgets.backend.rooms.room
 
 
-class DockerRoom(inter_md.backend.rooms.room.Room):
+class DockerRoom(interactive_widgets.backend.rooms.room.Room):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         assert isinstance(
             self.context,
-            inter_md.backend.contexts.docker_context.DockerContext,
+            interactive_widgets.backend.contexts.docker_context.DockerContext,
         )
 
         self.volume: typing.Optional[aiodocker.docker.DockerVolume] = None
@@ -29,7 +29,7 @@ class DockerRoom(inter_md.backend.rooms.room.Room):
             return wrapper
 
         self.executors = {
-            executor_name: inter_md.backend.executors.get.get(
+            executor_name: interactive_widgets.backend.executors.get.get(
                 f'docker.{executor_configuration["type"]}',
             )(
                 self.context,
@@ -48,7 +48,7 @@ class DockerRoom(inter_md.backend.rooms.room.Room):
         self.state.clear_torn_down()
         self.volume = await self.context.docker.volumes.create(
             config={
-                'Name': f'inter_md_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}',
+                'Name': f'interactive_widgets_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}',
                 # TODO: labels?
             },
         )

@@ -3,10 +3,10 @@ import base64
 import traceback
 import typing
 
-import inter_md.backend.executors.docker_executor
+import interactive_widgets.backend.executors.docker_executor
 
 
-class DockerOnce(inter_md.backend.executors.docker_executor.DockerExecutor):
+class DockerOnce(interactive_widgets.backend.executors.docker_executor.DockerExecutor):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -7,9 +7,9 @@ import threading
 import time
 import traceback
 
-import inter_md.monitor.read
-import inter_md.monitor.wait_for_event
-import inter_md.monitor.write
+import interactive_widgets.monitor.read
+import interactive_widgets.monitor.wait_for_event
+import interactive_widgets.monitor.write
 
 
 class StdinReader(threading.Thread):
@@ -23,7 +23,7 @@ class StdinReader(threading.Thread):
     def run(self):
         for line in sys.stdin:
             try:
-                inter_md.monitor.write.write(self.path, json.loads(line))
+                interactive_widgets.monitor.write.write(self.path, json.loads(line))
             except SystemExit:
                 return
             except OSError as error:
@@ -53,7 +53,7 @@ def main():
 
     while True:
         try:
-            inter_md.monitor.read.read(pathlib.Path(file))
+            interactive_widgets.monitor.read.read(pathlib.Path(file))
         except SystemExit:
             return
         except OSError as error:
@@ -69,7 +69,7 @@ def main():
             time.sleep(failure_timeout)
             continue
         try:
-            inter_md.monitor.wait_for_event.wait_for_event(pathlib.Path(file))
+            interactive_widgets.monitor.wait_for_event.wait_for_event(pathlib.Path(file))
             time.sleep(success_timeout)
         except SystemExit:
             return

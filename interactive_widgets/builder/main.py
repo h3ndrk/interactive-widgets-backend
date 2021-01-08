@@ -173,11 +173,11 @@ class Page:
 
             script_head_xterm = self.soup.new_tag('script')
             script_head_xterm['src'] = self.relative(
-                '//node_modules/xterm/lib/xterm.js',
+                '/node_modules/xterm/lib/xterm.js',
             )
             self.soup.head.append(script_head_xterm)
             self.required_files.append(self.relative(
-                '//node_modules/xterm/lib/xterm.js',
+                '/node_modules/xterm/lib/xterm.js',
             ))
 
             script_head_xterm_fit = self.soup.new_tag('script')

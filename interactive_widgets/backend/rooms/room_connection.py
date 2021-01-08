@@ -3,14 +3,14 @@ import aiohttp.web
 import logging
 import typing
 
-import inter_md.backend.contexts.context
-import inter_md.backend.rooms.get
-import inter_md.backend.rooms.room
+import interactive_widgets.backend.contexts.context
+import interactive_widgets.backend.rooms.get
+import interactive_widgets.backend.rooms.room
 
 
 class RoomConnection:
 
-    def __init__(self, context: inter_md.backend.contexts.context.Context, configuration: dict, rooms: typing.Dict[str, inter_md.backend.rooms.room.Room], room_name: str, websocket: aiohttp.web.WebSocketResponse):
+    def __init__(self, context: interactive_widgets.backend.contexts.context.Context, configuration: dict, rooms: typing.Dict[str, interactive_widgets.backend.rooms.room.Room], room_name: str, websocket: aiohttp.web.WebSocketResponse):
         self.context = context
         self.configuration = configuration
         self.rooms = rooms
@@ -25,7 +25,7 @@ class RoomConnection:
             self.logger.debug(f'Using existing room {self.room_name}...')
         except KeyError:
             self.logger.debug(f'Creating room {self.room_name}...')
-            room = inter_md.backend.rooms.get.get(
+            room = interactive_widgets.backend.rooms.get.get(
                 self.configuration['type'],
             )(
                 self.context,

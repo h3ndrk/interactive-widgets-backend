@@ -4,10 +4,10 @@ import base64
 import binascii
 import typing
 
-import inter_md.backend.executors.docker_executor
+import interactive_widgets.backend.executors.docker_executor
 
 
-class DockerAlways(inter_md.backend.executors.docker_executor.DockerExecutor):
+class DockerAlways(interactive_widgets.backend.executors.docker_executor.DockerExecutor):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -45,7 +45,7 @@ class DockerAlways(inter_md.backend.executors.docker_executor.DockerExecutor):
                             ],
                         },
                     },
-                    name=f'inter_md_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}'
+                    name=f'interactive_widgets_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}'
                 )
 
                 self.logger.debug('Attaching to container...')

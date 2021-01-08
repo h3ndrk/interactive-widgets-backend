@@ -6,17 +6,17 @@ import collections
 import logging
 import typing
 
-import inter_md.backend.contexts.context
-import inter_md.backend.contexts.docker_context
+import interactive_widgets.backend.contexts.context
+import interactive_widgets.backend.contexts.docker_context
 
 
 class DockerExecutor(abc.ABC):
 
-    def __init__(self, context: inter_md.backend.contexts.context.Context, configuration: dict, name: str, send_message: collections.abc.Coroutine):
+    def __init__(self, context: interactive_widgets.backend.contexts.context.Context, configuration: dict, name: str, send_message: collections.abc.Coroutine):
         super().__init__()
         assert isinstance(
             context,
-            inter_md.backend.contexts.docker_context.DockerContext,
+            interactive_widgets.backend.contexts.docker_context.DockerContext,
         )
 
         self.context = context
@@ -54,7 +54,7 @@ class DockerExecutor(abc.ABC):
                         ],
                     },
                 },
-                name=f'inter_md_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}'
+                name=f'interactive_widgets_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}'
             )
 
             self.logger.debug('Attaching to container...')
