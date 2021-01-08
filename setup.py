@@ -1,14 +1,13 @@
 import setuptools
 
 setuptools.setup(
-    name='inter_md',
+    name='interactive_widgets',
     version='0.0.1',
     packages=setuptools.find_packages(),
     entry_points={
         'console_scripts': [
-            'inter-md-backend = inter_md.backend.main:main',
-            'inter-md-builder = inter_md.builder.main:main',
-            'inter-md-monitor = inter_md.monitor.main:main',
+            'interactive-widgets-backend = interactive_widgets.backend.main:main',
+            'interactive-widgets-monitor = interactive_widgets.monitor.main:main',
         ],
     },
     install_requires=[
