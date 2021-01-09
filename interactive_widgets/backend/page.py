@@ -2,6 +2,7 @@ import aiodocker
 import aiohttp.web
 import json
 import logging
+import pathlib
 import typing
 
 import interactive_widgets.backend.contexts.context
@@ -11,17 +12,17 @@ import interactive_widgets.backend.rooms.room_connection
 
 class Page:
 
-    def __init__(self, context: interactive_widgets.backend.contexts.context.Context, configuration: dict):
+    def __init__(self, context: interactive_widgets.backend.contexts.context.Context, configuration: dict, url: pathlib.PurePosixPath, application: aiohttp.web.Application):
         self.context = context
         self.configuration = configuration
+        self.url = url
+        self.application = application
         self.logger = logging.getLogger(self.configuration['logger_name_page'])
-        self.application = aiohttp.web.Application()
         self.application.add_routes([
-            # aiohttp.web.get('/index', self._handle_index),
-            # aiohttp.web.get('/red-ball.png', self._handle_red_ball),
-            aiohttp.web.get('/ws', self._handle_websocket),
+            aiohttp.web.get(str(self.url / 'ws'), self._handle_websocket),
         ])
-        self.rooms: typing.Dict[str, interactive_widgets.backend.rooms.room.Room] = {}
+        self.rooms: typing.Dict[str,
+                                interactive_widgets.backend.rooms.room.Room] = {}
 
     def _connect(self, room_name: str, websocket: aiohttp.web.WebSocketResponse):
         return interactive_widgets.backend.rooms.room_connection.RoomConnection(

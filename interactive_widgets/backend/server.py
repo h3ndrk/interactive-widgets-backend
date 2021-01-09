@@ -2,6 +2,7 @@ import aiodocker
 import aiohttp.web
 import asyncio
 import logging
+import pathlib
 import typing
 
 import interactive_widgets.backend.page
@@ -22,8 +23,12 @@ class Server:
             pages = {}
             for url, page_configuration in self.configuration['pages'].items():
                 self.logger.debug(f'Adding page {url}...')
-                pages[url] = interactive_widgets.backend.page.Page(context, page_configuration)
-                application.add_subapp(url, pages[url].application)
+                pages[url] = interactive_widgets.backend.page.Page(
+                    context,
+                    page_configuration,
+                    pathlib.PurePosixPath(url),
+                    application,
+                )
             self.logger.debug('Pages added.')
 
             self.logger.debug('Starting server...')
