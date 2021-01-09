@@ -1,0 +1,6 @@
+FROM python:3
+
+WORKDIR /usr/src/app
+COPY interactive_widgets/ interactive_widgets/
+COPY setup.py ./
+RUN pip install --no-cache-dir ./

@@ -1,0 +1,14 @@
+version: "3"
+services:
+  interactive-widgets-backend:
+    image: interactive-widgets-backend
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+    - "80:80"
+  interactive-widgets-monitor:
+    image: interactive-widgets-monitor
+    build:
+      context: .
+      dockerfile: Dockerfile.monitor
