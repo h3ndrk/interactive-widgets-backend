@@ -89,18 +89,20 @@ class DockerAlways(interactive_widgets.backend.executors.docker_executor.DockerE
 
     async def tear_down(self):
         self.should_terminate = True
-        if self.container is not None:
-            self.logger.debug('Stopping container...')
-            await self.container.stop()
-        if self.execute_task is not None:
-            try:
-                self.logger.debug('Waiting for execute task...')
-                await asyncio.wait_for(self.execute_task, self.configuration.get('tear_down_timeout', 10))
-            except asyncio.TimeoutError:
-                self.logger.debug(
-                    'Timeout while waiting for execute task, cancelling...')
-                self.execute_task.cancel()
+        try:
+            if self.container is not None:
+                self.logger.debug('Stopping container...')
+                await self.container.stop()
+        finally:
+            if self.execute_task is not None:
                 try:
-                    await self.execute_task
-                except asyncio.CancelledError:
-                    pass
+                    self.logger.debug('Waiting for execute task...')
+                    await asyncio.wait_for(self.execute_task, self.configuration.get('tear_down_timeout', 10))
+                except asyncio.TimeoutError:
+                    self.logger.debug(
+                        'Timeout while waiting for execute task, cancelling...')
+                    self.execute_task.cancel()
+                    try:
+                        await self.execute_task
+                    except asyncio.CancelledError:
+                        pass
