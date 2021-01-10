@@ -10,7 +10,7 @@ import interactive_widgets.backend.contexts.context
 import interactive_widgets.backend.contexts.docker_context
 
 
-class DockerExecutor(abc.ABC):
+class DockerExecutor(metaclass=abc.ABCMeta):
 
     def __init__(self, context: interactive_widgets.backend.contexts.context.Context, configuration: dict, name: str, send_message: collections.abc.Coroutine):
         super().__init__()

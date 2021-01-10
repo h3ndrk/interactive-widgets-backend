@@ -2,7 +2,7 @@ import abc
 import logging
 
 
-class Context(abc.ABC):
+class Context(metaclass=abc.ABCMeta):
 
     def __init__(self, configuration: dict):
         self.configuration = configuration

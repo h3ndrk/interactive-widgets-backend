@@ -9,7 +9,7 @@ import interactive_widgets.backend.contexts.context
 import interactive_widgets.backend.rooms.room_state_machine
 
 
-class Room(abc.ABC):
+class Room(metaclass=abc.ABCMeta):
 
     def __init__(self, context: interactive_widgets.backend.contexts.context.Context, configuration: dict, name: str, send_message: collections.abc.Coroutine):
         super().__init__()
