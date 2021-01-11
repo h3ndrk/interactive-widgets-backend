@@ -1,6 +1,6 @@
 FROM python:3
 
 WORKDIR /usr/src/app
-COPY interactive_widgets/ interactive_widgets/
 COPY setup.py ./
+COPY interactive_widgets/ interactive_widgets/
 RUN pip install --no-cache-dir ./
