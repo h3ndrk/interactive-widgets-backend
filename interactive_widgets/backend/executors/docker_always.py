@@ -4,6 +4,7 @@ import base64
 import binascii
 import typing
 
+import interactive_widgets.backend.shield
 import interactive_widgets.backend.executors.docker_executor
 
 
@@ -26,27 +27,46 @@ class DockerAlways(interactive_widgets.backend.executors.docker_executor.DockerE
         while True:
             try:
                 self.logger.debug('Creating container...')
-                self.container = await self.context.docker.containers.create(
-                    config={
-                        'Cmd': self.configuration['command'],
-                        'Image': self.configuration['image'],
-                        'AttachStdin': True,
-                        'Tty': self.configuration.get('enable_tty', False),
-                        'OpenStdin': True,
-                        'StdinOnce': True,
-                        'HostConfig': {
-                            'Mounts': [
-                                {
-                                    'Target': '/data',
-                                    'Source': self.volume.name,
-                                    'Type': 'volume',
-                                    # TODO: 'VolumeOptions' labels
+                try:
+                    self.container = await interactive_widgets.backend.shield.shield(
+                        self.context.docker.containers.create(
+                            config={
+                                'Cmd': self.configuration['command'],
+                                'Image': self.configuration['image'],
+                                'AttachStdin': True,
+                                'Tty': self.configuration.get('enable_tty', False),
+                                'OpenStdin': True,
+                                'StdinOnce': True,
+                                'HostConfig': {
+                                    'Mounts': [
+                                        {
+                                            'Target': '/data',
+                                            'Source': self.volume.name,
+                                            'Type': 'volume',
+                                            # TODO: 'VolumeOptions' labels
+                                        },
+                                    ],
                                 },
-                            ],
-                        },
-                    },
-                    name=f'interactive_widgets_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}'
-                )
+                            },
+                            name=f'interactive_widgets_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}',
+                        ),
+                    )
+                except:
+                    self.logger.debug('Reverting container creation...')
+                    container = aiodocker.containers.DockerContainer(
+                        self.context.docker,
+                        id=f'interactive_widgets_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}',
+                    )
+                    try:
+                        await container.delete(force=True)
+                    except aiodocker.exceptions.DockerError as error:
+                        self.logger.debug(error)
+                        if error.status != 404:
+                            raise
+                        self.logger.debug(
+                            'Container had not been created yet.')
+                    self.container = None
+                    raise
 
                 self.logger.debug('Attaching to container...')
                 async with self.container.attach(stdin=True, stdout=True, stderr=True, logs=True) as stream:
@@ -68,11 +88,12 @@ class DockerAlways(interactive_widgets.backend.executors.docker_executor.DockerE
                         self.stream_ready.clear()
                         self.stream = None
             finally:
-                self.logger.debug('Stopping container...')
-                await self.container.stop()
-                self.logger.debug('Deleting container...')
-                await self.container.delete(force=True)
-                self.container = None
+                if self.container is not None:
+                    self.logger.debug('Stopping container...')
+                    await self.container.stop()
+                    self.logger.debug('Deleting container...')
+                    await self.container.delete(force=True)
+                    self.container = None
 
     async def handle_message(self, message: dict):
         await asyncio.wait_for(self.stream_ready.wait(), self.configuration.get('handle_message_timeout', 10))
