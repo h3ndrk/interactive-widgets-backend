@@ -6,7 +6,6 @@ import logging
 import typing
 
 import interactive_widgets.backend.contexts.context
-import interactive_widgets.backend.rooms.room_state_machine
 
 
 class Room(metaclass=abc.ABCMeta):
@@ -20,19 +19,23 @@ class Room(metaclass=abc.ABCMeta):
         self.logger = logging.getLogger(self.configuration['logger_name_room'])
         self.attached_websockets: typing.List[aiohttp.web.WebSocketResponse] = [
         ]
-        self.state = interactive_widgets.backend.rooms.room_state_machine.RoomStateMachine()
 
     def __len__(self) -> int:
         return len(self.attached_websockets)
 
-    @abc.abstractmethod
-    async def instantiate(self):
-        raise NotImplementedError
+    def attach_websocket(self, websocket: aiohttp.web.WebSocketResponse):
+        self.attached_websockets.append(websocket)
+
+    def detach_websocket(self, websocket: aiohttp.web.WebSocketResponse):
+        self.attached_websockets.remove(websocket)
+
+    def is_emtpy(self) -> bool:
+        return len(self.attached_websockets) == 0
 
     @abc.abstractmethod
     async def handle_message(self, message: dict):
         raise NotImplementedError
 
     @abc.abstractmethod
-    async def tear_down(self):
+    async def update(self):
         raise NotImplementedError

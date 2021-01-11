@@ -1,11 +1,36 @@
 import aiodocker
 import aiohttp.web
+import asyncio
 import logging
 import typing
 
+import interactive_widgets.backend.shield
 import interactive_widgets.backend.contexts.context
 import interactive_widgets.backend.rooms.get
 import interactive_widgets.backend.rooms.room
+
+
+# Test Cases (xC = WebSocket x connected, xD = WebSocket x disconnected, IN = Instantiated, TD = Torn-Down):
+# - 1C, IN, 1D, TD
+# - 1C, 1D, IN, TD
+# - 1C, IN, 2C, 2D, 1D, TD
+# - 1C, 2C, IN, 2D, 1D, TD
+# - 1C, 2C, 2D, IN, 1D, TD
+# - 1C, IN, 2C, 1D, 2D, TD
+# - 1C, 2C, IN, 1D, 2D, TD
+# - 1C, IN, 1D, 2C, 2D, TD
+# - 1C, 1D, IN, 2C, 2D, TD
+# - 1C, 2C, 1D, IN, 2D, TD
+# - 1C, 1D, 2C, IN, 2D, TD
+# - 1C, 2C, 2D, 1D, IN, TD
+# - 1C, 2C, 1D, 2D, IN, TD
+# - 1C, 1D, 2C, 2D, IN, TD
+# - 1C, IN, 1D, TD, 2C, IN, 2D, TD
+# - 1C, 1D, IN, TD, 2C, IN, 2D, TD
+# - 1C, IN, 1D, 2C, TD, IN, 2D, TD
+# - 1C, 1D, IN, 2C, TD, IN, 2D, TD
+# - 1C, IN, 1D, TD, 2C, 2D, IN, TD
+# - 1C, 1D, IN, TD, 2C, 2D, IN, TD
 
 
 class RoomConnection:
@@ -44,44 +69,25 @@ class RoomConnection:
             self.rooms[self.room_name] = room
 
         self.logger.debug(f'Attaching websocket {id(self.websocket)}...')
-        room.attached_websockets.append(self.websocket)
-
-        # This code instantiates a room or waits for already running instantiation. The
-        # expected exceptions are asyncio.CancelledError and all exceptions raised during
-        # instantiation (failures). In all cases the partially instantiated room must be
-        # torn down.
+        room.attach_websocket(self.websocket)
         try:
-            if len(room.attached_websockets) == 1:
-                self.logger.debug('First attached websocket, instantiating...')
-                await room.instantiate()
-            else:
-                self.logger.debug('Waiting for instantiation...')
-                await room.state.wait_for_instantiate()
+            await room.update()
         except:
-            await self._tear_down(force_if_not_instantiated=True)
+            await interactive_widgets.backend.shield.shield(self._detach(room))
             raise
 
         return room
 
     async def __aexit__(self, *args, **kwargs):
-        await self._tear_down(force_if_not_instantiated=False)
+        await interactive_widgets.backend.shield.shield(self._detach(self.rooms[self.room_name]))
 
-    async def _tear_down(self, force_if_not_instantiated: bool):
-        # Same as during instantiation, care must be taken if exceptions are raised during
-        # tear down (e.g. asyncio.CancelledError or failure exceptions). In all cases the
-        # room must be cleaned up correctly.
-        room = self.rooms[self.room_name]
-
+    async def _detach(self, room: interactive_widgets.backend.rooms.room.Room):
         self.logger.debug(f'Detaching websocket {id(self.websocket)}...')
-        room.attached_websockets.remove(self.websocket)
-
+        room.detach_websocket(self.websocket)
         try:
-            if len(room.attached_websockets) == 0 and (force_if_not_instantiated or room.state.is_instantiated()):
-                self.logger.debug('Last websocket detached, tearing down...')
-                room.state.clear_instantiated()
-                await room.tear_down()
+            await room.update()
         finally:
-            if len(room.attached_websockets) == 0:
+            if room in self.rooms.values() and room.is_emtpy():
                 self.logger.debug('Deleting room...')
                 del self.rooms[self.room_name]
 
