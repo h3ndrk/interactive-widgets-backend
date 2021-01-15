@@ -9,3 +9,4 @@ def read(path: pathlib.Path, stdout_lock: threading.Lock):
         sys.stdout.write(
             f'{{"contents":"{base64.b64encode(file.read()).decode("utf-8")}"}}\n',
         )
+        sys.stdout.flush()

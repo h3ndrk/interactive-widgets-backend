@@ -35,11 +35,13 @@ class StdinReader(threading.Thread):
                     sys.stdout.write(
                         f'{{"error":"{base64.b64encode(error.strerror.encode("utf-8")).decode("utf-8")}"}}\n',
                     )
+                    sys.stdout.flush()
             except:
                 with self.stdout_lock:
                     sys.stdout.write(
                         f'{{"error":"{base64.b64encode(traceback.format_exc().encode("utf-8")).decode("utf-8")}"}}\n',
                     )
+                    sys.stdout.flush()
 
 
 def main():
@@ -72,6 +74,7 @@ def main():
                 sys.stdout.write(
                     f'{{"error":"{base64.b64encode(error.strerror.encode("utf-8")).decode("utf-8")}"}}\n',
                 )
+                sys.stdout.flush()
             time.sleep(failure_timeout)
             continue
         except:
@@ -79,6 +82,7 @@ def main():
                 sys.stdout.write(
                     f'{{"error":"{base64.b64encode(traceback.format_exc().encode("utf-8")).decode("utf-8")}"}}\n',
                 )
+                sys.stdout.flush()
             time.sleep(failure_timeout)
             continue
         try:
@@ -93,4 +97,5 @@ def main():
                 sys.stdout.write(
                     f'{{"error":"{base64.b64encode(traceback.format_exc().encode("utf-8")).decode("utf-8")}"}}\n',
                 )
+                sys.stdout.flush()
             time.sleep(failure_timeout)
