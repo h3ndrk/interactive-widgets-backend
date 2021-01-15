@@ -14,26 +14,32 @@ import interactive_widgets.monitor.write
 
 class StdinReader(threading.Thread):
 
-    def __init__(self, path: pathlib.Path, *args, **kwargs):
+    def __init__(self, path: pathlib.Path, stdout_lock: threading.Lock, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.daemon = True
         self.path = path
+        self.stdout_lock = stdout_lock
 
     def run(self):
         for line in sys.stdin:
             try:
-                interactive_widgets.monitor.write.write(self.path, json.loads(line))
+                interactive_widgets.monitor.write.write(
+                    self.path,
+                    json.loads(line),
+                )
             except SystemExit:
                 return
             except OSError as error:
-                sys.stdout.write(
-                    f'{{"error":"{base64.b64encode(error.strerror.encode("utf-8")).decode("utf-8")}"}}\n',
-                )
+                with self.stdout_lock:
+                    sys.stdout.write(
+                        f'{{"error":"{base64.b64encode(error.strerror.encode("utf-8")).decode("utf-8")}"}}\n',
+                    )
             except:
-                sys.stdout.write(
-                    f'{{"error":"{base64.b64encode(traceback.format_exc().encode("utf-8")).decode("utf-8")}"}}\n',
-                )
+                with self.stdout_lock:
+                    sys.stdout.write(
+                        f'{{"error":"{base64.b64encode(traceback.format_exc().encode("utf-8")).decode("utf-8")}"}}\n',
+                    )
 
 
 def main():
@@ -49,32 +55,42 @@ def main():
     success_timeout = float(sys.argv[2])
     failure_timeout = float(sys.argv[3])
 
-    StdinReader(pathlib.Path(file)).start()
+    stdout_lock = threading.Lock()
+
+    StdinReader(pathlib.Path(file), stdout_lock).start()
 
     while True:
         try:
-            interactive_widgets.monitor.read.read(pathlib.Path(file))
+            interactive_widgets.monitor.read.read(
+                pathlib.Path(file),
+                stdout_lock,
+            )
         except SystemExit:
             return
         except OSError as error:
-            sys.stdout.write(
-                f'{{"error":"{base64.b64encode(error.strerror.encode("utf-8")).decode("utf-8")}"}}\n',
-            )
+            with stdout_lock:
+                sys.stdout.write(
+                    f'{{"error":"{base64.b64encode(error.strerror.encode("utf-8")).decode("utf-8")}"}}\n',
+                )
             time.sleep(failure_timeout)
             continue
         except:
-            sys.stdout.write(
-                f'{{"error":"{base64.b64encode(traceback.format_exc().encode("utf-8")).decode("utf-8")}"}}\n',
-            )
+            with stdout_lock:
+                sys.stdout.write(
+                    f'{{"error":"{base64.b64encode(traceback.format_exc().encode("utf-8")).decode("utf-8")}"}}\n',
+                )
             time.sleep(failure_timeout)
             continue
         try:
-            interactive_widgets.monitor.wait_for_event.wait_for_event(pathlib.Path(file))
+            interactive_widgets.monitor.wait_for_event.wait_for_event(
+                pathlib.Path(file),
+            )
             time.sleep(success_timeout)
         except SystemExit:
             return
         except:
-            sys.stdout.write(
-                f'{{"error":"{base64.b64encode(traceback.format_exc().encode("utf-8")).decode("utf-8")}"}}\n',
-            )
+            with stdout_lock:
+                sys.stdout.write(
+                    f'{{"error":"{base64.b64encode(traceback.format_exc().encode("utf-8")).decode("utf-8")}"}}\n',
+                )
             time.sleep(failure_timeout)
