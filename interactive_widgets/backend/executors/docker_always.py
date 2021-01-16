@@ -17,6 +17,7 @@ class DockerAlways(interactive_widgets.backend.executors.docker_executor.DockerE
         self.container: typing.Optional[aiodocker.docker.DockerContainer] = None
         self.stream: typing.Optional[aiodocker.stream.Stream] = None
         self.stream_ready = asyncio.Event()
+        self.tty_size: typing.Optional[dict] = None
 
     async def instantiate(self, *args, **kwargs):
         await super().instantiate(*args, **kwargs)
@@ -75,6 +76,12 @@ class DockerAlways(interactive_widgets.backend.executors.docker_executor.DockerE
                         self.logger.debug('Starting container...')
                         await self.container.start()
                         self.stream_ready.set()
+                        if self.tty_size is not None:
+                            self.logger.debug('Setting initial TTY size...')
+                            await self.container.resize(
+                                h=self.tty_size['rows'],
+                                w=self.tty_size['cols'],
+                            )
                         while True:
                             message = await stream.read_out()
                             if message is None:
@@ -103,7 +110,8 @@ class DockerAlways(interactive_widgets.backend.executors.docker_executor.DockerE
                 base64.b64decode(message['stdin'].encode('utf-8')),
             )
         elif 'size' in message:
-            print(message['size'])
+            self.logger.debug('Setting TTY size...')
+            self.tty_size = message['size']
             await self.container.resize(
                 h=message['size']['rows'],
                 w=message['size']['cols'],
