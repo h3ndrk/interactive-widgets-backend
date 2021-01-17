@@ -29,7 +29,7 @@ class DockerAlways(interactive_widgets.backend.executors.docker_executor.DockerE
             try:
                 self.logger.debug('Creating container...')
                 try:
-                    container_config = {
+                    container_configuration = {
                         'Cmd': self.configuration['command'],
                         'Image': self.configuration['image'],
                         'AttachStdin': True,
@@ -48,10 +48,10 @@ class DockerAlways(interactive_widgets.backend.executors.docker_executor.DockerE
                         },
                     }
                     if 'working_directory' in self.configuration:
-                        container_config['WorkingDir'] = self.configuration['working_directory']
+                        container_configuration['WorkingDir'] = self.configuration['working_directory']
                     self.container = await interactive_widgets.backend.shield.shield(
                         self.context.docker.containers.create(
-                            config=container_config,
+                            config=container_configuration,
                             name=f'interactive_widgets_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}',
                         ),
                     )
