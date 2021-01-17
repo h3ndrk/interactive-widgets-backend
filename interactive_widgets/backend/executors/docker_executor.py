@@ -42,22 +42,26 @@ class DockerExecutor(metaclass=abc.ABCMeta):
         try:
             self.logger.debug('Creating container...')
             try:
+                container_config = {
+                    'Cmd': self.configuration['command'],
+                    'Image': self.configuration['image'],
+                    'WorkingDir': self.configuration.get('working_directory', '/'),
+                    'HostConfig': {
+                        'Mounts': [
+                            {
+                                'Target': '/data',
+                                'Source': self.volume.name,
+                                'Type': 'volume',
+                                # TODO: 'VolumeOptions' labels
+                            },
+                        ],
+                    },
+                }
+                if 'working_directory' in self.configuration:
+                    container_config['WorkingDir'] = self.configuration['working_directory']
                 container = await interactive_widgets.backend.shield.shield(
                     self.context.docker.containers.create(
-                        config={
-                            'Cmd': self.configuration['command'],
-                            'Image': self.configuration['image'],
-                            'HostConfig': {
-                                'Mounts': [
-                                    {
-                                        'Target': '/data',
-                                        'Source': self.volume.name,
-                                        'Type': 'volume',
-                                        # TODO: 'VolumeOptions' labels
-                                    },
-                                ],
-                            },
-                        },
+                        config=container_config,
                         name=f'interactive_widgets_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}',
                     ),
                 )
