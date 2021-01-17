@@ -14,12 +14,13 @@ import interactive_widgets.monitor.write
 
 class StdinReader(threading.Thread):
 
-    def __init__(self, path: pathlib.Path, stdout_lock: threading.Lock, *args, **kwargs):
+    def __init__(self, path: pathlib.Path, stdout_lock: threading.Lock, written_event: threading.Event, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.daemon = True
         self.path = path
         self.stdout_lock = stdout_lock
+        self.written_event = written_event
 
     def run(self):
         for line in sys.stdin:
@@ -28,6 +29,8 @@ class StdinReader(threading.Thread):
                     self.path,
                     json.loads(line),
                 )
+                self.written_event.set()
+                self.written_event.clear()
             except SystemExit:
                 return
             except OSError as error:
@@ -58,8 +61,9 @@ def main():
     failure_timeout = float(sys.argv[3])
 
     stdout_lock = threading.Lock()
+    written_event = threading.Event()
 
-    StdinReader(pathlib.Path(file), stdout_lock).start()
+    StdinReader(pathlib.Path(file), stdout_lock, written_event).start()
 
     while True:
         try:
@@ -75,7 +79,7 @@ def main():
                     f'{{"error":"{base64.b64encode(error.strerror.encode("utf-8")).decode("utf-8")}"}}\n',
                 )
                 sys.stdout.flush()
-            time.sleep(failure_timeout)
+            written_event.wait(failure_timeout)
             continue
         except:
             with stdout_lock:
@@ -83,7 +87,7 @@ def main():
                     f'{{"error":"{base64.b64encode(traceback.format_exc().encode("utf-8")).decode("utf-8")}"}}\n',
                 )
                 sys.stdout.flush()
-            time.sleep(failure_timeout)
+            written_event.wait(failure_timeout)
             continue
         try:
             interactive_widgets.monitor.wait_for_event.wait_for_event(
@@ -98,4 +102,4 @@ def main():
                     f'{{"error":"{base64.b64encode(traceback.format_exc().encode("utf-8")).decode("utf-8")}"}}\n',
                 )
                 sys.stdout.flush()
-            time.sleep(failure_timeout)
+            written_event.wait(failure_timeout)
