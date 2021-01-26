@@ -14,7 +14,7 @@ import interactive_widgets.backend.contexts.docker_context
 
 class DockerExecutor(metaclass=abc.ABCMeta):
 
-    def __init__(self, context: interactive_widgets.backend.contexts.context.Context, configuration: dict, name: str, send_message: collections.abc.Coroutine):
+    def __init__(self, context: interactive_widgets.backend.contexts.context.Context, configuration: dict, room_name: str, name: str, send_message: collections.abc.Coroutine):
         super().__init__()
         assert isinstance(
             context,
@@ -23,6 +23,7 @@ class DockerExecutor(metaclass=abc.ABCMeta):
 
         self.context = context
         self.configuration = configuration
+        self.room_name = room_name
         self.name = name
         self.send_message = send_message
 
@@ -62,14 +63,14 @@ class DockerExecutor(metaclass=abc.ABCMeta):
                 container = await interactive_widgets.backend.shield.shield(
                     self.context.docker.containers.create(
                         config=container_configuration,
-                        name=f'interactive_widgets_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}',
+                        name=f'interactive_widgets_{binascii.hexlify(f"{self.room_name}-{self.name}".encode("utf-8")).decode("utf-8")}',
                     ),
                 )
             except:
                 self.logger.debug('Reverting container creation...')
                 container = aiodocker.containers.DockerContainer(
                     self.context.docker,
-                    id=f'interactive_widgets_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}',
+                    id=f'interactive_widgets_{binascii.hexlify(f"{self.room_name}-{self.name}".encode("utf-8")).decode("utf-8")}',
                 )
                 try:
                     await container.delete(force=True)

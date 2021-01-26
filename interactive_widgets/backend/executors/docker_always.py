@@ -52,14 +52,14 @@ class DockerAlways(interactive_widgets.backend.executors.docker_executor.DockerE
                     self.container = await interactive_widgets.backend.shield.shield(
                         self.context.docker.containers.create(
                             config=container_configuration,
-                            name=f'interactive_widgets_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}',
+                            name=f'interactive_widgets_{binascii.hexlify(f"{self.room_name}-{self.name}".encode("utf-8")).decode("utf-8")}',
                         ),
                     )
                 except:
                     self.logger.debug('Reverting container creation...')
                     container = aiodocker.containers.DockerContainer(
                         self.context.docker,
-                        id=f'interactive_widgets_{binascii.hexlify(self.name.encode("utf-8")).decode("utf-8")}',
+                        id=f'interactive_widgets_{binascii.hexlify(f"{self.room_name}-{self.name}".encode("utf-8")).decode("utf-8")}',
                     )
                     try:
                         await container.delete(force=True)
