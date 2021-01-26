@@ -36,7 +36,7 @@ class DockerRoom(interactive_widgets.backend.rooms.room.Room):
             )(
                 self.context,
                 executor_configuration,
-                self.room_name,
+                self.name,
                 executor_name,
                 wrap_send_message(executor_name, self.send_message),
             )
