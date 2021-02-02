@@ -20,9 +20,9 @@ The backend does not build nor pull any Docker images. All images used by execut
 
 ## Building
 
-For development you may install the backend and monitor executable via `pip`, e.g.: `pip install --editable ./`, then run the executables `interactive-widgets-backend` and `interactive-widgets-monitor`.
-
 For usage with the [MkDocs plugin](https://github.com/h3ndrk/interactive-widgets-mkdocs/) the executables can be built with: `docker-compose build` (creates Docker images `interactive-widgets-backend` and `interactive-widgets-monitor`).
+
+For development you may install the backend and monitor executable via `pip`, e.g.: `pip install --editable ./`, then run the executables `interactive-widgets-backend` and `interactive-widgets-monitor`.
 
 ## License
 
