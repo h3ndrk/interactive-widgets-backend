@@ -49,13 +49,13 @@ class DockerExecutor(metaclass=abc.ABCMeta):
                     'WorkingDir': self.configuration.get('working_directory', '/'),
                     'NetworkDisabled': True,
                     'HostConfig': {
-                        'Memory': self.configuration['memory_limit_bytes'],
-                        'CpuQuota': self.configuration['cpu_limit'] * 100_000,
+                        'Memory': int(self.configuration['memory_limit_bytes']),
+                        'CpuQuota': int(self.configuration['cpu_limit'] * 100_000),
                         'CpuRealtimeRuntime': 0,
-                        'KernelMemory': self.configuration['memory_limit_bytes'],
-                        'MemorySwap': self.configuration['memory_limit_bytes'],
-                        'NanoCpus': self.configuration['cpu_limit'] * 1_000_000_000,
-                        'PidsLimit': self.configuration['pids_limit'],
+                        'KernelMemory': int(self.configuration['memory_limit_bytes']),
+                        'MemorySwap': int(self.configuration['memory_limit_bytes']),
+                        'NanoCpus': int(self.configuration['cpu_limit'] * 1_000_000_000),
+                        'PidsLimit': int(self.configuration['pids_limit']),
                         'Capabilities': [],
                         'Mounts': [
                             {
