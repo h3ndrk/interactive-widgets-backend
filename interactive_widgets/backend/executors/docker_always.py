@@ -34,9 +34,18 @@ class DockerAlways(interactive_widgets.backend.executors.docker_executor.DockerE
                         'Image': self.configuration['image'],
                         'AttachStdin': True,
                         'Tty': self.configuration.get('enable_tty', False),
+                        'NetworkDisabled': True,
                         'OpenStdin': True,
                         'StdinOnce': True,
                         'HostConfig': {
+                            'Memory': self.configuration['memory_limit_bytes'],
+                            'CpuQuota': self.configuration['cpu_limit'] * 100_000,
+                            'CpuRealtimeRuntime': 0,
+                            'KernelMemory': self.configuration['memory_limit_bytes'],
+                            'MemorySwap': self.configuration['memory_limit_bytes'],
+                            'NanoCpus': self.configuration['cpu_limit'] * 1_000_000_000,
+                            'PidsLimit': self.configuration['pids_limit'],
+                            'Capabilities': [],
                             'Mounts': [
                                 {
                                     'Target': '/data',
