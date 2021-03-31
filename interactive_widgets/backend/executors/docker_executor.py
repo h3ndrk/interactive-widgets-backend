@@ -54,7 +54,6 @@ class DockerExecutor(metaclass=abc.ABCMeta):
                         'CpuRealtimeRuntime': 0,
                         'KernelMemory': int(self.configuration['memory_limit_bytes']),
                         'MemorySwap': int(self.configuration['memory_limit_bytes']),
-                        'NanoCpus': int(self.configuration['cpu_limit'] * 1_000_000_000),
                         'PidsLimit': int(self.configuration['pids_limit']),
                         'Capabilities': [],
                         'Mounts': [
